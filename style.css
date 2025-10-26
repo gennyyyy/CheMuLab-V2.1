@@ -9,7 +9,7 @@ body {
     height: 100vh;
     font-weight: bold;
     color: #000;
-    font-family: 'Open Sans', cursive;
+    font-family: 'Open Sans', sans-serif;
 }
 
 .app-container {
@@ -536,5 +536,3 @@ body {
         height: 22px;
     }
 }
-
-
