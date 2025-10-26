@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheMuLab - Your Lab</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="chemistry_craft.css">
 </head>
 <body>
     <div class="app-container">
         <div class="top-bar">
             <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Home</a>
             </div>
             <a href="sign_in.html" class="sign-in">
                 <div class="sidebar-icon">&#128100;</div> Sign In
@@ -19,6 +20,9 @@
         </div>
 
         <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
             <a href="your_lab.html" class="sidebar-item active">
                 <div class="sidebar-icon">&#129514;</div> Your Lab
             </a>
@@ -34,21 +38,52 @@
             <a href="leaderboard.html" class="sidebar-item">
                 <div class="sidebar-icon">&#127942;</div> Leaderboard
             </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
         </div>
 
         <div class="main-content">
-            <div class="reaction-desc">
-                An acid-base reaction is a type of chemical reaction that occurs when an acid reacts with a base. It usually produces salt and water. This is also called a neutralization reaction.
+            <div class="lab-interface">
+                <div class="elements-panel">
+                    <h3>Elements</h3>
+                    <div class="search-bar">
+                        <input type="text" id="elementSearch" placeholder="Search elements...">
+                    </div>
+                    <div class="element-grid" id="elementGrid">
+                        <!-- Elements will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="crafting-area">
+                    <div class="crafting-slots">
+                        <div class="crafting-slot" id="slot1" ondrop="drop(event)" ondragover="allowDrop(event)">
+                            <div class="slot-label">Drop First Element</div>
+                        </div>
+                        <div class="plus-sign">+</div>
+                        <div class="crafting-slot" id="slot2" ondrop="drop(event)" ondragover="allowDrop(event)">
+                            <div class="slot-label">Drop Second Element</div>
+                        </div>
+                    </div>
+                    <button class="combine-btn" id="combineBtn" disabled>Combine Elements</button>
+                    <div class="result-area" id="resultArea">
+                        <div class="result-slot">
+                            <div class="slot-label">Result will appear here</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="discoveries-panel">
+                    <h3>Your Discoveries</h3>
+                    <div class="discoveries-list" id="discoveriesList">
+                        <!-- Discoveries will be added here -->
+                    </div>
+                </div>
             </div>
-            <div class="chemicals">
-                <img src="https://www.shutterstock.com/image-vector/chemical-glass-flasks-different-forms-260nw-2360013873.jpg" alt="Hydrochloric Acid" class="flask-img">
-                <span>+</span>
-                <img src="https://thumbs.dreamstime.com/b/erlenmeyer-flask-blue-liquid-scientific-glassware-chemistry-experiment-research-laboratory-analysis-equipment-used-402520044.jpg" alt="Sodium Hydroxide" class="flask-img">
-            </div>
-            <img src="https://img.freepik.com/free-vector/glass-beaker-with-water-illustration_1308-167066.jpg?semt=ais_hybrid" alt="Beaker" class="beaker-img">
-            <div>Drag the two chemicals into the beaker to see the magic of Chemistry!</div>
-            <img class="robot" src="img/jepoy.png" alt="Robot">
         </div>
+        <script src="script.js"></script>
+        <script src="chemistry_craft.js"></script>
     </div>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -55,9 +55,11 @@ body {
 .sign-in {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     color: #000;
     text-decoration: none;
+    order: 3; /* keep sign-in at the far right in the top bar */
+    margin-left: auto;
 }
 
 .sign-in:hover{
@@ -79,6 +81,7 @@ body {
     flex-direction: column;
     gap: 20px;
     border-right: 1px solid #ccc;
+    transition: transform 0.28s ease, visibility 0.28s ease;
 }
 
 .sidebar-item {
@@ -118,6 +121,128 @@ body {
     padding: 20px;
     height: calc(100% - 70px);
     overflow-y: auto;
+    transition: margin-left 0.28s ease;
+}
+
+/* Toggle button in the top bar */
+#sidebarToggle {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    order: 2; /* sits between logo and nav-links */
+}
+
+/* Collapsed sidebar state applied to container */
+.app-container.sidebar-collapsed .sidebar {
+    transform: translateX(-170px);
+}
+
+    .app-container.sidebar-collapsed .main-content {
+        margin-left: 30px;
+    }
+
+    @media (max-width: 900px) and (orientation: portrait) {
+        .app-container.sidebar-collapsed .main-content {
+            margin-left: 0;
+        }
+    }/* Make the sidebar overlay on small widths */
+@media (max-width: 900px) {
+    body {
+        align-items: flex-start;
+        padding: 0;
+        height: 100vh;
+        overflow-x: hidden;
+    }
+
+    .app-container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        height: calc(100% - 56px);
+        z-index: 40;
+        box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+        background-color: rgba(173, 216, 230, 0.98);
+        transform: translateX(0);
+        width: 250px;
+    }
+
+    /* Ensure complete collapse on mobile */
+    .app-container.sidebar-collapsed .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 16px;
+        width: 100%;
+        box-sizing: border-box;
+        position: relative;
+        transition: all 0.28s ease;
+    }
+
+    @media (orientation: portrait) {
+        .app-container:not(.sidebar-collapsed) .main-content {
+            margin-top: 60vh;
+        }
+
+        .app-container.sidebar-collapsed .main-content {
+            margin-top: 0;
+        }
+    }
+
+    /* Overlay when sidebar is open */
+    .app-container:not(.sidebar-collapsed)::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 35;
+    }
+}
+
+/* Small phones: optimize layout */
+@media (max-width: 480px) {
+    .logo { font-size: 20px; }
+    #sidebarToggle { 
+        font-size: 20px;
+        padding: 8px 12px;
+        margin-left: -8px;
+    }
+    .task-box { 
+        width: 100%; 
+        float: none;
+        box-sizing: border-box;
+    }
+    .robot { 
+        width: 110px; 
+        margin-top: 20px; 
+        float: none; 
+        display: block; 
+        margin-left: auto; 
+        margin-right: auto; 
+    }
+    .top-bar {
+        padding: 10px 16px;
+    }
+    .sidebar {
+        width: 85%;
+        max-width: 300px;
+    }
 }
 
 .welcome {
@@ -267,6 +392,32 @@ body {
     
     
   
+}
+
+.about-section {
+    background-color: #add8e6;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.about-section h2, .about-section h3 {
+    color: #000;
+    margin-bottom: 15px;
+}
+
+.about-section p {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.about-section ul {
+    list-style-position: inside;
+    margin-bottom: 20px;
+}
+
+.about-section li {
+    margin-bottom: 8px;
 }
 
 .ranking {

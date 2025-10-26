@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CheMuLab - Sign In</title>
+    <title>About - CheMuLab</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,6 +13,9 @@
             <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
             <div class="nav-links">
             </div>
+            <a href="sign_in.html" class="sign-in">
+                <div class="sidebar-icon">&#128100;</div> Sign In
+            </a>
         </div>
 
         <div class="sidebar">
@@ -34,19 +37,29 @@
             <a href="leaderboard.html" class="sidebar-item">
                 <div class="sidebar-icon">&#127942;</div> Leaderboard
             </a>
-            <a href="about.html" class="sidebar-item">
+            <a href="about.html" class="sidebar-item active">
                 <div class="sidebar-icon">&#8505;</div> About
             </a>
         </div>
 
         <div class="main-content">
-            <form class="sign-in-form">
-                <label for="username">Username</label>
-                <input type="text" id="username">
-                <label for="password">Password</label>
-                <input type="password" id="password">
-                <a href="index.html" class="sign_in">Sign In</a>
-            </form>
+            <div class="welcome">About CheMuLab</div>
+            <div class="about-section">
+                <h2>Welcome to CheMuLab!</h2>
+                <p>CheMuLab is your interactive chemistry learning platform that makes studying chemistry fun and engaging. Practice chemical reactions, learn about elements, and compete with friends in a gamified learning environment.</p>
+                
+                <h3>Features:</h3>
+                <ul>
+                    <li>Interactive chemistry experiments</li>
+                    <li>Comprehensive element database</li>
+                    <li>Progress tracking</li>
+                    <li>Friend interactions</li>
+                    <li>Competitive leaderboard</li>
+                </ul>
+
+                <h3>How to Use:</h3>
+                <p>Start by visiting Your Lab to begin experimenting with different chemical reactions. Track your progress, challenge your friends, and climb the leaderboard as you learn!</p>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

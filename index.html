@@ -10,8 +10,8 @@
     <div class="app-container">
         <div class="top-bar">
             <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
             <div class="nav-links">
-                <a href="index.html" class="nav-link">Home</a>
             </div>
             <a href="sign_in.html" class="sign-in">
                 <div class="sidebar-icon">&#128100;</div> Sign In
@@ -19,6 +19,9 @@
         </div>
 
         <div class="sidebar">
+            <a href="index.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
             <a href="your_lab.html" class="sidebar-item">
                 <div class="sidebar-icon">&#129514;</div> Your Lab
             </a>
@@ -34,6 +37,9 @@
             <a href="leaderboard.html" class="sidebar-item">
                 <div class="sidebar-icon">&#127942;</div> Leaderboard
             </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
         </div>
 
         <div class="main-content">
@@ -42,5 +48,6 @@
             <img class="robot" src="img/jepoy.png" alt="Robot">
         </div>
     </div>
+    <script src="script.js"></script>
 </body>
 </html>
