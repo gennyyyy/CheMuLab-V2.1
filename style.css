@@ -22,6 +22,8 @@ body {
     position: relative;
 }
 
+
+
 .top-bar {
     background-color: #add8e6;
     padding: 10px;
@@ -68,6 +70,63 @@ body {
 
 }
 
+.auth-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.auth-form input {
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #000;
+}
+
+.auth-form button {
+        padding: 10px;
+        background: var(--accent-color, #87ceeb);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+}
+
+.auth-form button:hover {
+    opacity: 0.9;
+}
+
+.auth-toggle {
+        text-align: center;
+        margin-top: 15px;
+}
+
+.auth-toggle button {
+    background: none;
+    border: none;
+    color: #000;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.error-message {
+    color: #ff0000;
+    background: rgba(255, 0, 0, 0.1);
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+}
+
 .sidebar {
     width: 150px;
     background-color: #add8e6;
@@ -103,6 +162,10 @@ body {
 
 .sidebar-item.active {
     background-color: #5f9ea0;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
+    border: 2px solid #457b7d;
+    transform: scale(1.02);
 }
 
 .sidebar-icon {

@@ -1,6 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
     const app = document.querySelector('.app-container');
     const btn = document.getElementById('sidebarToggle');
+    
+    // Set active page indicator based on current URL
+    const currentPath = window.location.pathname;
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    
+    sidebarItems.forEach(item => {
+        // Remove any existing active class first
+        item.classList.remove('active');
+        
+        // Get the href and compare with current path
+        const itemPath = item.getAttribute('href');
+        if (itemPath && (currentPath.endsWith(itemPath) || 
+            (itemPath === 'index.html' && currentPath.endsWith('/')))) {
+            item.classList.add('active');
+        }
+    });
 
     if (!btn || !app) return;
 

@@ -46,11 +46,12 @@
 
 .element {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    padding: 10px;
+    border-radius: 6px;
+    padding: 6px;
     text-align: center;
     cursor: grab;
     transition: transform 0.2s, background 0.2s;
+    font-size: 0.9em;
 }
 
 .element:hover {
@@ -109,7 +110,7 @@
     padding: 10px 20px;
     background: var(--accent-color);
     color: var(--text-color);
-    border: none;
+    border: 1px solid black;
     border-radius: 5px;
     cursor: pointer;
     transition: opacity 0.3s;

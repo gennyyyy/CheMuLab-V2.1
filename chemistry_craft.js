@@ -141,7 +141,7 @@ const initialElements = [
     { symbol: 'Cn', name: 'Copernicium', color: '#CC9999', type: 'transition' }
 ];
 
-// Combination rules for elements
+// Combination rules for elements (expanded with valid binary compounds, removed invalid ones like OH which isn't an element)
 const combinationRules = {
     // Basic Combinations
     'H+O': { result: 'H2O', name: 'Water', description: 'The most essential compound for life' },
@@ -150,18 +150,20 @@ const combinationRules = {
     
     // Acids and Bases
     'H+Cl': { result: 'HCl', name: 'Hydrochloric Acid', description: 'A strong acid found in your stomach' },
-    'Na+OH': { result: 'NaOH', name: 'Sodium Hydroxide', description: 'A strong base used in soap making' },
     'H+F': { result: 'HF', name: 'Hydrofluoric Acid', description: 'A highly corrosive acid' },
     
     // Salts
     'Na+Cl': { result: 'NaCl', name: 'Table Salt', description: 'Common table salt used in cooking' },
     'K+Cl': { result: 'KCl', name: 'Potassium Chloride', description: 'Used as a salt substitute' },
     'Ca+Cl': { result: 'CaCl2', name: 'Calcium Chloride', description: 'Used for de-icing roads' },
+    'Zn+I': { result: 'ZnI2', name: 'Zinc Iodide', description: 'A binary ionic compound' },
     
     // Oxides
     'Fe+O': { result: 'Fe2O3', name: 'Iron Oxide', description: 'Common rust' },
     'Al+O': { result: 'Al2O3', name: 'Aluminum Oxide', description: 'Used in sandpaper' },
     'Si+O': { result: 'SiO2', name: 'Silicon Dioxide', description: 'Found in sand and quartz' },
+    'Ca+O': { result: 'CaO', name: 'Calcium Oxide', description: 'Also known as quicklime, used in cement' },
+    'Mg+O': { result: 'MgO', name: 'Magnesium Oxide', description: 'Used in refractories and antacids' },
     
     // Compounds with Sulfur
     'H+S': { result: 'H2S', name: 'Hydrogen Sulfide', description: 'Smells like rotten eggs' },
@@ -179,9 +181,14 @@ const combinationRules = {
     'N+H': { result: 'NH3', name: 'Ammonia', description: 'Used in fertilizers' },
     'C+H': { result: 'CH4', name: 'Methane', description: 'The simplest hydrocarbon' },
     
-    // Hydroxides
-    'K+OH': { result: 'KOH', name: 'Potassium Hydroxide', description: 'Used in soap making' },
-    'Ca+OH': { result: 'Ca(OH)2', name: 'Calcium Hydroxide', description: 'Used in cement' }
+    // Additional Binary Molecular Compounds
+    'N+O': { result: 'NO', name: 'Nitrogen Monoxide', description: 'A colorless gas used in medicine' },
+    'S+Cl': { result: 'S2Cl2', name: 'Disulfur Dichloride', description: 'Used in vulcanization of rubber' },
+    'Cl+O': { result: 'Cl2O7', name: 'Dichlorine Heptoxide', description: 'A highly explosive oxide' },
+    'C+Cl': { result: 'CCl4', name: 'Carbon Tetrachloride', description: 'Formerly used as a solvent' },
+    'P+Cl': { result: 'PCl3', name: 'Phosphorus Trichloride', description: 'Used in organic synthesis' },
+    'B+F': { result: 'BF3', name: 'Boron Trifluoride', description: 'A Lewis acid catalyst' },
+    'Si+C': { result: 'SiC', name: 'Silicon Carbide', description: 'Known as carborundum, used as abrasive' }
 };
 
 // Keep track of discovered compounds
@@ -206,6 +213,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial population
     populateElements(initialElements);
+
+    // Load saved discoveries for current user (if any) and populate discoveriesList
+    try {
+        const currentUser = (window.AuthService && window.AuthService.getCurrentUser && AuthService.getCurrentUser());
+        if (currentUser && window.DiscoveryService) {
+            const saved = DiscoveryService.getDiscoveries(currentUser.username);
+            if (Array.isArray(saved) && saved.length) {
+                // Render saved discoveries in the right pane
+                saved.forEach(d => {
+                    const discoveryItem = document.createElement('div');
+                    discoveryItem.className = 'discovery-item';
+                    discoveryItem.innerHTML = `<span>${d.id} - ${d.name || d.symbol}</span>`;
+                    discoveriesList.appendChild(discoveryItem);
+                });
+            }
+        }
+    } catch (err) {
+        console.error('[chemistry_craft] Error loading saved discoveries', err);
+    }
 
     // Search functionality
     searchInput.addEventListener('input', (e) => {
@@ -322,4 +348,29 @@ function addToDiscoveries(discovery) {
         <span>${discovery.result} - ${discovery.name}</span>
     `;
     discoveriesList.appendChild(discoveryItem);
+
+    // Also persist the discovery to the logged-in user's data using DiscoveryService
+    try {
+        if (window.AuthService && window.AuthService.getCurrentUser && window.DiscoveryService) {
+            const user = AuthService.getCurrentUser();
+            if (user) {
+                // Use result as id for compound discoveries
+                const discoveryObj = {
+                    id: discovery.result,
+                    symbol: discovery.result,
+                    name: discovery.name,
+                    completed: true,
+                    type: 'compound',
+                    // include a timestamp here as fallback — DiscoveryService will also set dateDiscovered
+                    dateDiscovered: new Date().toISOString()
+                };
+                DiscoveryService.addDiscovery(user.username, discoveryObj);
+                console.log('[chemistry_craft] Saved discovery for', user.username, discoveryObj);
+            } else {
+                console.warn('[chemistry_craft] No logged-in user - discovery not persisted');
+            }
+        }
+    } catch (err) {
+        console.error('[chemistry_craft] Error saving discovery', err);
+    }
 }
