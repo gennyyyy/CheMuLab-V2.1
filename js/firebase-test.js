@@ -16,7 +16,13 @@ async function testFirebaseConnection() {
     if (currentUser) {
         console.log('Current user:', { uid: currentUser.uid, isAnonymous: currentUser.isAnonymous });
     } else {
-        console.log('No authenticated user currently. Will attempt anonymous sign-in now (if allowed by project).');
+        console.log('No authenticated user currently.');
+        // Only attempt anonymous sign-in in testing/dev when explicitly allowed.
+        const allowAnon = window.CHEMULAB_ALLOW_AUTO_ANON === true;
+        if (!allowAnon) {
+            console.log('Skipping anonymous sign-in because auto-anon is disabled for deployed sites. Sign in with an email/password account to run Firestore tests.');
+            return;
+        }
         try {
             if (window.firebase && firebase.auth) {
                 const anonResult = await firebase.auth().signInAnonymously().catch(e => { throw e; });
