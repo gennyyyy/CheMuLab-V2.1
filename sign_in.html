@@ -23,21 +23,35 @@
     };
 
     // Initialize Firebase
+    console.log('Initializing Firebase...');
     if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Firebase:', error);
+        }
+    } else {
+        console.log('Firebase already initialized');
     }
     </script>
 
     <!-- Auth State Handling -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if already logged in
+        // Check if already logged in and set up auth state monitoring
+        console.log('Setting up auth state monitoring...');
         firebase.auth().onAuthStateChanged(function(user) {
+            console.log('Auth state changed. Current user:', user ? user.email : 'No user');
             if (user) {
                 console.log('User is signed in:', user.email);
+                console.log('User ID:', user.uid);
                 const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
+                console.log('Redirecting to:', redirectPath);
                 sessionStorage.removeItem('redirectAfterLogin');
                 window.location.href = redirectPath;
+            } else {
+                console.log('No user is signed in');
             }
         });
     });
@@ -278,18 +292,24 @@
         // Handle login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Login attempt initiated');
             errorMessage.style.display = 'none';
             loginLoading.style.display = 'block';
             disableForm(loginForm, true);
 
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
+            console.log('Attempting login with email:', email);
 
             try {
-                await firebase.auth().signInWithEmailAndPassword(email, password);
+                console.log('Calling Firebase auth...');
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                console.log('Login successful:', userCredential.user.email);
                 // Redirect will be handled by the auth state observer
             } catch (error) {
                 console.error('Login error:', error);
+                console.log('Error code:', error.code);
+                console.log('Error message:', error.message);
                 showError(error.message || 'An error occurred during login');
                 disableForm(loginForm, false);
             }
