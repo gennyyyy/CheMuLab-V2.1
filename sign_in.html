@@ -11,6 +11,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
+    <!-- App Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+
     <!-- Initialize Firebase -->
     <script>
     const firebaseConfig = {
@@ -318,6 +322,7 @@
         // Handle registration
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Registration attempt initiated');
             errorMessage.style.display = 'none';
             registerLoading.style.display = 'block';
             disableForm(registerForm, true);
@@ -325,6 +330,7 @@
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPass = document.getElementById('confirmPassword').value;
+            console.log('Registration attempt with email:', email);
 
             if (password !== confirmPass) {
                 showError('Passwords do not match');
@@ -333,9 +339,13 @@
             }
 
             try {
-                await firebase.auth().createUserWithEmailAndPassword(email, password);
-                // Redirect will be handled by the auth state observer
+                console.log('Creating new user with AuthService...');
+                const username = email.split('@')[0]; // Use email prefix as username
+                const user = await AuthService.register(username, email, password);
+                console.log('Registration successful:', user);
+                // Auth state listener will handle redirect
             } catch (error) {
+                console.error('Registration error:', error);
                 showError(error.message || 'An error occurred during registration');
                 disableForm(registerForm, false);
             }
