@@ -12,54 +12,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <!-- App Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/route-protection.js"></script>
-
-    <!-- Initialize Firebase -->
-    <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDWnavAW-AUcieISRo5EyKME82OXNzyhks",
-        authDomain: "chemulab-8a992.firebaseapp.com",
-        projectId: "chemulab-8a992",
-        storageBucket: "chemulab-8a992.appspot.com",
-        messagingSenderId: "547646773141",
-        appId: "1:547646773141:web:fd602d3887b49fcbef889c"
-    };
-
-    // Initialize Firebase
-    console.log('Initializing Firebase...');
-    if (!firebase.apps.length) {
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log('Firebase initialized successfully');
-        } catch (error) {
-            console.error('Error initializing Firebase:', error);
-        }
-    } else {
-        console.log('Firebase already initialized');
-    }
-    </script>
-
-    <!-- Auth State Handling -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if already logged in and set up auth state monitoring
-        console.log('Setting up auth state monitoring...');
-        firebase.auth().onAuthStateChanged(function(user) {
-            console.log('Auth state changed. Current user:', user ? user.email : 'No user');
-            if (user) {
-                console.log('User is signed in:', user.email);
-                console.log('User ID:', user.uid);
-                const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
-                console.log('Redirecting to:', redirectPath);
-                sessionStorage.removeItem('redirectAfterLogin');
-                window.location.href = redirectPath;
-            } else {
-                console.log('No user is signed in');
-            }
-        });
-    });
-    </script>
+    <script src="js/discovery-service.js"></script>
 
     <style>
         .app-container {
@@ -306,14 +263,12 @@
             console.log('Attempting login with email:', email);
 
             try {
-                console.log('Calling Firebase auth...');
-                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
-                console.log('Login successful:', userCredential.user.email);
-                // Redirect will be handled by the auth state observer
+                console.log('Using AuthService to log in...');
+                await AuthService.login(email, password);
+                console.log('Login successful, waiting for auth state to update...');
+                // Auth state listener will handle redirect
             } catch (error) {
                 console.error('Login error:', error);
-                console.log('Error code:', error.code);
-                console.log('Error message:', error.message);
                 showError(error.message || 'An error occurred during login');
                 disableForm(loginForm, false);
             }
@@ -341,14 +296,29 @@
             try {
                 console.log('Creating new user with AuthService...');
                 const username = email.split('@')[0]; // Use email prefix as username
-                const user = await AuthService.register(username, email, password);
-                console.log('Registration successful:', user);
+                await AuthService.register(username, email, password);
+                console.log('Registration successful, waiting for auth state to update...');
                 // Auth state listener will handle redirect
             } catch (error) {
                 console.error('Registration error:', error);
                 showError(error.message || 'An error occurred during registration');
                 disableForm(registerForm, false);
             }
+        });
+
+        // Check if already signed in
+        console.log('Setting up auth state monitoring...');
+        window.addEventListener('firebaseReady', () => {
+            console.log('Firebase is ready, checking auth state...');
+            AuthService.onAuthStateChanged((user) => {
+                console.log('Auth state changed:', user ? `User ${user.email} is signed in` : 'No user is signed in');
+                if (user) {
+                    console.log('Redirecting authenticated user...');
+                    const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
+                    sessionStorage.removeItem('redirectAfterLogin');
+                    window.location.href = redirectPath;
+                }
+            });
         });
     </script>
 </body>
