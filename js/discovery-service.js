@@ -129,6 +129,19 @@ const DiscoveryService = {
         }));
     },
 
+    // Resolve the effective storage/user id to use for Firestore and localStorage.
+    // If a Firebase user is signed in, prefer the Firebase UID; otherwise use the provided username.
+    resolveUserId(username) {
+        try {
+            if (window.firebase && window.firebase.auth && window.firebase.auth().currentUser) {
+                return window.firebase.auth().currentUser.uid;
+            }
+        } catch (e) {
+            // ignore
+        }
+        return username;
+    },
+
     // Note: firebaseSaveUserData is defined earlier and writes to the 'progress' collection.
     // Duplicate definitions were removed to keep a single source of truth for Firestore writes.
 
@@ -136,23 +149,86 @@ const DiscoveryService = {
 
     migrateLegacy(username) { const result = { username, foundLegacy: false, legacyKey: null, legacyRaw: null, migrated: false, migratedCount: 0 }; try { if (typeof AuthService !== 'undefined' && AuthService.STORAGE_KEYS && AuthService.STORAGE_KEYS.USER_PROGRESS) { const legacyKey = AuthService.STORAGE_KEYS.USER_PROGRESS + username; result.legacyKey = legacyKey; const legacy = localStorage.getItem(legacyKey); if (legacy) { result.foundLegacy = true; result.legacyRaw = legacy; let legacyObj = null; try { legacyObj = JSON.parse(legacy); } catch (e) { legacyObj = null; } const migrated = this.initializeUserData(username); if (legacyObj) { const discovered = Array.isArray(legacyObj.discoveredElements) ? legacyObj.discoveredElements : []; migrated.discoveries = discovered.map(sym => ({ id: String(sym), symbol: String(sym), name: String(sym), completed: true, dateDiscovered: new Date().toISOString() })); migrated.progress = { ...migrated.progress, totalDiscoveries: migrated.discoveries.length, completedDiscoveries: migrated.discoveries.length, progressPercentage: (migrated.discoveries.length / 118) * 100, milestones: { beginner: (migrated.discoveries.length / 118) * 100 >= 10, intermediate: (migrated.discoveries.length / 118) * 100 >= 50, advanced: (migrated.discoveries.length / 118) * 100 >= 75, master: (migrated.discoveries.length / 118) * 100 >= 100 } }; localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(migrated)); result.migrated = true; result.migratedCount = migrated.discoveries.length; } } } else { result.error = 'AuthService or its STORAGE_KEYS.USER_PROGRESS not available'; } } catch (err) { result.error = String(err); } return result; },
 
-    async saveUserData(username, data) { localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(data)); try { const fbReady = await this.ensureFirebase(); if (fbReady) { const ok = await this.firebaseSaveUserData(username, data); if (ok) { window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'success', message: 'Synced with Firebase' } })); return; } } } catch (e) { console.warn('Firebase sync error', e); } try { await this.syncWithDatabase(username, data); window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'success', message: 'Synced with repository' } })); } catch (e) { console.warn('Repository sync failed', e); window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'error', message: 'Sync failed' } })); } },
+    async saveUserData(username, data) {
+        // Use resolved id (firebase uid when available) for storage and remote writes
+        const id = this.resolveUserId(username);
+        localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data));
+        try {
+            const fbReady = await this.ensureFirebase();
+            if (fbReady) {
+                const ok = await this.firebaseSaveUserData(id, data);
+                if (ok) {
+                    window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'success', message: 'Synced with Firebase' } }));
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Firebase sync error', e);
+        }
+        try {
+            await this.syncWithDatabase(id, data);
+            window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'success', message: 'Synced with repository' } }));
+        } catch (e) {
+            console.warn('Repository sync failed', e);
+            window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'error', message: 'Sync failed' } }));
+        }
+    },
 
     async syncWithDatabase(username, userData) { const { owner, repo, branch, dbPath, API_BASE } = this.REPO_CONFIG; const apiUrl = `${API_BASE}/${owner}/${repo}/contents/${dbPath}`; try { const response = await fetch(apiUrl); if (!response.ok) throw new Error('Failed to fetch database'); const fileData = await response.json(); let dbContent = JSON.parse(this.base64Decode(fileData.content)); const lastUpdate = new Date(dbContent.lastUpdate); const lastLocalSync = localStorage.getItem(this.STORAGE_KEYS.LAST_SYNC + username); if (lastLocalSync && new Date(lastLocalSync) < lastUpdate) { const remoteUserData = dbContent.users[username] || {}; userData = this.mergeProgress(remoteUserData, userData); localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(userData)); } dbContent.users[username] = userData; dbContent.lastUpdate = new Date().toISOString(); const content = this.base64Encode(JSON.stringify(dbContent, null, 2)); const updatePayload = { message: `Update progress for user ${username}`, content, sha: fileData.sha, branch }; const updateResponse = await fetch(apiUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatePayload) }); if (!updateResponse.ok) throw new Error('Failed to update database'); localStorage.setItem(this.STORAGE_KEYS.LAST_SYNC + username, new Date().toISOString()); return true; } catch (error) { console.error('Sync error:', error); throw error; } },
 
     mergeProgress(remote, local) { if (!remote) return local; if (!local) return remote; const mergedDiscoveries = [...local.discoveries]; remote.discoveries.forEach(remoteDiscovery => { const existingIndex = mergedDiscoveries.findIndex(d => d.id === remoteDiscovery.id); if (existingIndex === -1) mergedDiscoveries.push(remoteDiscovery); else { const localDate = new Date(mergedDiscoveries[existingIndex].dateDiscovered || 0); const remoteDate = new Date(remoteDiscovery.dateDiscovered || 0); if (remoteDate > localDate) mergedDiscoveries[existingIndex] = remoteDiscovery; } }); return { ...local, discoveries: mergedDiscoveries, progress: { ...local.progress, totalDiscoveries: mergedDiscoveries.length, completedDiscoveries: mergedDiscoveries.filter(d => d.completed).length } }; },
 
-    async getUserData(username) { let data = null; const localData = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); if (localData) data = JSON.parse(localData); try { const fbReady = await this.ensureFirebase(); if (fbReady) { const fbData = await this.firebaseGetUserData(username); if (fbData) { data = data ? this.mergeProgress(fbData, data) : fbData; localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(data)); localStorage.setItem(this.STORAGE_KEYS.LAST_SYNC + username, new Date().toISOString()); return data; } } const { owner, repo, dbPath, API_BASE } = this.REPO_CONFIG; const apiUrl = `${API_BASE}/${owner}/${repo}/contents/${dbPath}`; const response = await fetch(apiUrl); if (response.ok) { const fileData = await response.json(); const dbContent = JSON.parse(this.base64Decode(fileData.content)); if (dbContent.users && dbContent.users[username]) { const remoteData = dbContent.users[username]; data = data ? this.mergeProgress(remoteData, data) : remoteData; localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(data)); localStorage.setItem(this.STORAGE_KEYS.LAST_SYNC + username, dbContent.lastUpdate); } } } catch (err) { console.warn('getUserData fallback to local due to error', err); } return data || this.initializeUserData(username); },
+    async getUserData(username) {
+        // Resolve to the effective id (firebase uid when available)
+        const id = this.resolveUserId(username);
+        let data = null;
 
-    saveUserDataLocal(username, data) { localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(data)); },
+        // If local data exists under the resolved id, use it
+        const localData = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+        if (localData) data = JSON.parse(localData);
 
-    addDiscovery(username, discovery) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); const userData = local ? JSON.parse(local) : this.initializeUserData(username); const existingIndex = userData.discoveries.findIndex(d => d.id === discovery.id); if (existingIndex === -1) userData.discoveries.push({ ...discovery, dateDiscovered: new Date().toISOString() }); else userData.discoveries[existingIndex] = { ...userData.discoveries[existingIndex], ...discovery, dateModified: new Date().toISOString() }; this.updateProgress(username, userData); this.saveUserData(username, userData); return userData; },
+        try {
+            const fbReady = await this.ensureFirebase();
+            if (fbReady) {
+                const fbData = await this.firebaseGetUserData(id);
+                if (fbData) {
+                    data = data ? this.mergeProgress(fbData, data) : fbData;
+                    localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data));
+                    localStorage.setItem(this.STORAGE_KEYS.LAST_SYNC + id, new Date().toISOString());
+                    return data;
+                }
+            }
 
-    updateProgress(username, userData = null) { if (!userData) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); userData = local ? JSON.parse(local) : null; } if (!userData) return null; const totalPossibleDiscoveries = 118; const completedDiscoveries = userData.discoveries.filter(d => d.completed).length; const progressPercentage = (completedDiscoveries / totalPossibleDiscoveries) * 100; userData.progress = { ...userData.progress, totalDiscoveries: userData.discoveries.length, completedDiscoveries, progressPercentage, milestones: { beginner: progressPercentage >= 10, intermediate: progressPercentage >= 50, advanced: progressPercentage >= 75, master: progressPercentage >= 100 } }; this.saveUserData(username, userData); this.emitProgressUpdate(userData.progress); return userData.progress; },
+            // Fallback to repository (GitHub) using username mapping if needed
+            const { owner, repo, dbPath, API_BASE } = this.REPO_CONFIG;
+            const apiUrl = `${API_BASE}/${owner}/${repo}/contents/${dbPath}`;
+            const response = await fetch(apiUrl);
+            if (response.ok) {
+                const fileData = await response.json();
+                const dbContent = JSON.parse(this.base64Decode(fileData.content));
+                // try both id and username keys
+                const remoteData = (dbContent.users && (dbContent.users[id] || dbContent.users[username])) || null;
+                if (remoteData) {
+                    data = data ? this.mergeProgress(remoteData, data) : remoteData;
+                    localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data));
+                    localStorage.setItem(this.STORAGE_KEYS.LAST_SYNC + id, dbContent.lastUpdate);
+                }
+            }
+        } catch (err) {
+            console.warn('getUserData fallback to local due to error', err);
+        }
+        return data || this.initializeUserData(id);
+    },
 
-    getDiscoveries(username) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); const userData = local ? JSON.parse(local) : null; return userData ? userData.discoveries : []; },
+    saveUserDataLocal(username, data) { const id = this.resolveUserId(username); localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data)); },
 
-    getProgress(username) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); const userData = local ? JSON.parse(local) : null; return userData ? userData.progress : null; },
+    addDiscovery(username, discovery) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : this.initializeUserData(id); const existingIndex = userData.discoveries.findIndex(d => d.id === discovery.id); if (existingIndex === -1) userData.discoveries.push({ ...discovery, dateDiscovered: new Date().toISOString() }); else userData.discoveries[existingIndex] = { ...userData.discoveries[existingIndex], ...discovery, dateModified: new Date().toISOString() }; this.updateProgress(id, userData); this.saveUserData(id, userData); return userData; },
+
+    updateProgress(username, userData = null) { const id = this.resolveUserId(username); if (!userData) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); userData = local ? JSON.parse(local) : null; } if (!userData) return null; const totalPossibleDiscoveries = 118; const completedDiscoveries = userData.discoveries.filter(d => d.completed).length; const progressPercentage = (completedDiscoveries / totalPossibleDiscoveries) * 100; userData.progress = { ...userData.progress, totalDiscoveries: userData.discoveries.length, completedDiscoveries, progressPercentage, milestones: { beginner: progressPercentage >= 10, intermediate: progressPercentage >= 50, advanced: progressPercentage >= 75, master: progressPercentage >= 100 } }; this.saveUserData(id, userData); this.emitProgressUpdate(userData.progress); return userData.progress; },
+
+    getDiscoveries(username) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : null; return userData ? userData.discoveries : []; },
+
+    getProgress(username) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : null; return userData ? userData.progress : null; },
 
     emitProgressUpdate(progress) { document.dispatchEvent(new CustomEvent('progressUpdate', { detail: progress })); }
 };
