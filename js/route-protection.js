@@ -1,19 +1,29 @@
 // Route Protection and Authentication Management
 
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for Firebase to be ready before initializing route protection
+let firebaseReady = false;
+window.addEventListener('firebaseReady', () => {
+    firebaseReady = true;
+    initializeRouteProtection();
+});
+
+// Timeout to prevent infinite waiting
+setTimeout(() => {
+    if (!firebaseReady) {
+        console.warn('Firebase initialization timeout - proceeding with route protection');
+        initializeRouteProtection();
+    }
+}, 5000);
+
+function initializeRouteProtection() {
     // Check if this is the sign-in page
     const isSignInPage = window.location.pathname.endsWith('sign_in.html');
     
-    // Helper to get the current user (always fresh)
-    function getCurrentUser() {
-        return AuthService.getCurrentUser();
-    }
-
-    // Update user status display (reads current user dynamically)
+    // Update user status display using Firebase Auth directly
     function updateUserStatus() {
         const userStatus = document.querySelector('#userStatus');
         const userStatusText = document.querySelector('#userStatusText');
-        const user = getCurrentUser();
+        const user = firebase.auth().currentUser;
 
         if (userStatus && userStatusText) {
             if (user) {
@@ -33,20 +43,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Route protection (use fresh user)
-    const nowUser = getCurrentUser();
-        // Route protection: defer the decision until auth state is known (prevents flash/redirect loop)
-        function evaluateRouteWithUser(user) {
-            const nowUser = user || getCurrentUser();
-            if (!isSignInPage && !nowUser) {
-                // Redirect to sign in if not authenticated
-                window.location.href = 'sign_in.html';
-                return;
-            } else if (isSignInPage && nowUser) {
-                // Redirect to home if already authenticated
-                window.location.href = 'index.html';
-                return;
-            }
+    // Route protection with Firebase Auth
+    function evaluateRoute(user) {
+        // Store the intended destination if we need to redirect
+        if (!isSignInPage && !user) {
+            sessionStorage.setItem('redirectAfterLogin', window.location.pathname);
+            window.location.href = 'sign_in.html';
+            return;
+        } else if (isSignInPage && user) {
+            // After login, redirect to stored destination or home
+            const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
+            sessionStorage.removeItem('redirectAfterLogin');
+            window.location.href = redirectPath;
+            return;
+        }
 
             // Update user status display
             updateUserStatus();
