@@ -636,9 +636,10 @@ function debugDeleteUser() {
 
     if (confirm(`Are you sure you want to DELETE user ${selectedUsername}? This cannot be undone!`)) {
         try {
-            // Get current users and remove the selected one
+            // Get current users and remove the selected one (update in-memory users; do NOT persist credentials)
             const users = AuthService.getAllUsers().filter(u => u.username !== selectedUsername);
-            localStorage.setItem(AuthService.STORAGE_KEYS.USERS, JSON.stringify(users));
+            // Update the AuthService in-memory users list instead of saving to localStorage
+            AuthService._users = users;
             // Remove user's discoveries
             localStorage.removeItem(AuthService.STORAGE_KEYS.USER_PROGRESS + selectedUsername);
             selectedUsername = null;

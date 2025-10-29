@@ -2,6 +2,9 @@
 // Replaces legacy localStorage-based auth. Preserves some helper keys for migration.
 
 const AuthService = {
+    // In-memory state to avoid persisting login credentials locally.
+    _currentSnapshot: null,
+    _users: [ { username: 'admin', isAdmin: true, registrationDate: new Date().toISOString() } ],
     STORAGE_KEYS: {
         USERS: 'chemulab_users', // legacy
         CURRENT_USER: 'chemulab_current_user', // legacy
@@ -28,23 +31,24 @@ const AuthService = {
 
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
-                // store a minimal current user snapshot for legacy code
+                // store a minimal current user snapshot in-memory for compatibility with legacy code
                 const snapshot = { uid: user.uid, email: user.email || null, isAnonymous: !!user.isAnonymous };
-                localStorage.setItem(this.STORAGE_KEYS.CURRENT_USER, JSON.stringify(snapshot));
-
                 // attempt to load profile (username) from Firestore users collection
                 try {
                     const doc = await firebase.firestore().collection('users').doc(user.uid).get();
                     if (doc.exists) {
                         const profile = doc.data();
                         snapshot.username = profile.username || snapshot.email || user.uid;
-                        localStorage.setItem(this.STORAGE_KEYS.CURRENT_USER, JSON.stringify(snapshot));
+                        snapshot.isAdmin = !!profile.isAdmin;
                     }
                 } catch (e) {
-                    // ignore
+                    // ignore profile load errors — keep minimal snapshot
                 }
+                // keep snapshot in memory only (do NOT persist credentials locally)
+                this._currentSnapshot = snapshot;
             } else {
-                localStorage.removeItem(this.STORAGE_KEYS.CURRENT_USER);
+                // signed out — clear in-memory snapshot
+                this._currentSnapshot = null;
             }
         });
     },
@@ -170,7 +174,8 @@ const AuthService = {
         if (window.firebase && firebase.auth) {
             await firebase.auth().signOut();
         }
-        localStorage.removeItem(this.STORAGE_KEYS.CURRENT_USER);
+        // Do not remove any persisted credentials because we no longer persist them.
+        this._currentSnapshot = null;
     },
 
     // Return a compact current user object (or null)
@@ -181,8 +186,8 @@ const AuthService = {
                 return { uid: u.uid, email: u.email || null, isAnonymous: !!u.isAnonymous };
             }
         } catch (e) {}
-        const raw = localStorage.getItem(this.STORAGE_KEYS.CURRENT_USER);
-        return raw ? JSON.parse(raw) : null;
+        // Fallback to in-memory snapshot only (do not read persisted credentials)
+        return this._currentSnapshot;
     },
 
     // Backwards-compatible helper used by older pages: returns true when a user is signed in
@@ -194,12 +199,13 @@ const AuthService = {
         } catch (e) {
             // fall through to legacy check
         }
-        const raw = localStorage.getItem(this.STORAGE_KEYS.CURRENT_USER);
-        return !!raw;
+        return !!this._currentSnapshot;
     },
 
     // Legacy helpers (kept for compatibility, but registration/login now use Firebase)
-    getAllUsers() { const raw = localStorage.getItem(this.STORAGE_KEYS.USERS); return raw ? JSON.parse(raw) : []; },
+    // getAllUsers now returns an in-memory list. This prevents persisting login credentials
+    // to localStorage while preserving a built-in admin user.
+    getAllUsers() { return Array.isArray(this._users) ? this._users.slice() : []; },
     initializeUserProgress(username) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ discoveredElements: [], completedCombinations: [] })); },
     getUserProgress(username) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; },
     updateUserProgress(username, progress) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; localStorage.setItem(key, JSON.stringify(progress)); }
