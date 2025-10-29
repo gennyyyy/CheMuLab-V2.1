@@ -1,6 +1,28 @@
+// Update the user status display with the current user's info
+function updateUserStatus() {
+    const userStatusText = document.getElementById('userStatusText');
+    const currentUser = AuthService.getCurrentUser();
+    
+    if (currentUser) {
+        // Show username if available, fall back to email, then uid
+        const displayName = currentUser.username || currentUser.email || currentUser.uid;
+        userStatusText.textContent = displayName + (currentUser.isAdmin ? ' (Admin)' : '');
+    } else {
+        userStatusText.textContent = 'Sign In';
+    }
+}
+
+// Listen for auth state changes to update the display
+window.addEventListener('firebaseReady', () => {
+    firebase.auth().onAuthStateChanged(updateUserStatus);
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const app = document.querySelector('.app-container');
     const btn = document.getElementById('sidebarToggle');
+    
+    // Update user status on page load
+    updateUserStatus();
     
     // Set active page indicator based on current URL
     const currentPath = window.location.pathname;

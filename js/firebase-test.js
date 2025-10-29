@@ -11,29 +11,13 @@ async function testFirebaseConnection() {
         return;
     }
 
-    // Test anonymous auth
+    // Check for authenticated user (must sign in with email/password first)
     let currentUser = firebase.auth().currentUser;
     if (currentUser) {
-        console.log('Current user:', { uid: currentUser.uid, isAnonymous: currentUser.isAnonymous });
+        console.log('Running tests with authenticated user:', { uid: currentUser.uid });
     } else {
-        console.log('No authenticated user currently.');
-        // Only attempt anonymous sign-in in testing/dev when explicitly allowed.
-        const allowAnon = window.CHEMULAB_ALLOW_AUTO_ANON === true;
-        if (!allowAnon) {
-            console.log('Skipping anonymous sign-in because auto-anon is disabled for deployed sites. Sign in with an email/password account to run Firestore tests.');
-            return;
-        }
-        try {
-            if (window.firebase && firebase.auth) {
-                const anonResult = await firebase.auth().signInAnonymously().catch(e => { throw e; });
-                currentUser = firebase.auth().currentUser || (anonResult && anonResult.user);
-                if (currentUser) console.log('Anonymous sign-in succeeded:', { uid: currentUser.uid });
-            }
-        } catch (e) {
-            console.warn('Anonymous sign-in attempt failed:', e && e.code, e && e.message);
-            console.log('If anonymous sign-in is disabled, enable it in Firebase Console -> Authentication -> Sign-in method, or sign in with an email/password account. Skipping Firestore write test.');
-            return;
-        }
+        console.log('No authenticated user found. Please sign in with an email/password account first to run Firebase connection tests.');
+        return;
     }
 
     // Test Firestore access with proper user-scoped collection
