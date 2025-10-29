@@ -220,7 +220,61 @@ const DiscoveryService = {
     // Get user data directly from localStorage (synchronous)
     getUserDataLocal(username) {
         const data = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username);
-        return data ? JSON.parse(data) : null;
+        if (data) return JSON.parse(data);
+
+        // No current-format data found — check for legacy AuthService progress key and migrate
+        try {
+            if (typeof AuthService !== 'undefined' && AuthService.STORAGE_KEYS && AuthService.STORAGE_KEYS.USER_PROGRESS) {
+                const legacyKey = AuthService.STORAGE_KEYS.USER_PROGRESS + username; // e.g. chemulab_progress_<username>
+                const legacy = localStorage.getItem(legacyKey);
+                if (legacy) {
+                    // Legacy format used by AuthService: { discoveredElements: [], completedCombinations: [] }
+                    let legacyObj = null;
+                    try { legacyObj = JSON.parse(legacy); } catch (e) { legacyObj = null; }
+
+                    // Build new userData structure from legacy
+                    const migrated = this.initializeUserData(username);
+
+                    if (legacyObj) {
+                        // Map discoveredElements (array of symbols or ids) to discoveries array
+                        const discovered = Array.isArray(legacyObj.discoveredElements) ? legacyObj.discoveredElements : [];
+                        migrated.discoveries = discovered.map(sym => ({
+                            id: String(sym),
+                            symbol: String(sym),
+                            name: String(sym),
+                            completed: true,
+                            dateDiscovered: new Date().toISOString()
+                        }));
+
+                        // Update progress metrics
+                        migrated.progress = {
+                            ...migrated.progress,
+                            totalDiscoveries: migrated.discoveries.length,
+                            completedDiscoveries: migrated.discoveries.length,
+                            progressPercentage: (migrated.discoveries.length / 118) * 100,
+                            milestones: {
+                                beginner: (migrated.discoveries.length / 118) * 100 >= 10,
+                                intermediate: (migrated.discoveries.length / 118) * 100 >= 50,
+                                advanced: (migrated.discoveries.length / 118) * 100 >= 75,
+                                master: (migrated.discoveries.length / 118) * 100 >= 100
+                            }
+                        };
+
+                        // Save migrated data under new key
+                        localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(migrated));
+
+                        // Optionally remove legacy key to avoid double-migration
+                        // localStorage.removeItem(legacyKey);
+
+                        return migrated;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Migration check failed', e);
+        }
+
+        return null;
     },
 
     // Add or update a discovery
