@@ -1,33 +1,39 @@
 // firebase-init.js
-// Ensures Firebase is initialized as early as possible and emits a 'firebaseReady' event.
-(function(){
-    function logInit(message) {
-        console.info('[Firebase Init]', message);
+// Initialize Firebase and emit firebaseReady event when ready
+(function() {
+    // Wait for Firebase SDK to be available
+    function waitForFirebase(callback) {
+        if (window.firebase) {
+            callback();
+        } else {
+            setTimeout(() => waitForFirebase(callback), 50);
+        }
     }
 
-    try {
-        logInit('Starting initialization...');
-        
+    // Initialize Firebase with config
+    function initializeFirebase() {
+        // Check for config
         if (!window.FIREBASE_CONFIG) {
-            console.warn('firebase-init: FIREBASE_CONFIG not found on window');
+            console.error('[Firebase] No config found');
             return;
         }
 
-        if (window.firebase && window.firebase.apps && window.firebase.apps.length) {
-            logInit('Firebase already initialized, waiting for auth...');
-            // already initialized - but make sure auth is ready
-            firebase.auth().onAuthStateChanged((user) => {
-                logInit(`Auth ready! User ${user ? 'logged in' : 'not logged in'}`);
+        // Check if already initialized
+        if (window.firebase.apps && window.firebase.apps.length > 0) {
+            console.log('[Firebase] Already initialized');
+            return;
+        }
+
+        try {
+            // Initialize Firebase
+            window.firebase.initializeApp(window.FIREBASE_CONFIG);
+            console.log('[Firebase] Initialized successfully');
+
+            // Wait for auth to be ready
+            firebase.auth().onAuthStateChanged(function(user) {
+                console.log('[Firebase] Auth state ready:', user ? 'logged in' : 'not logged in');
                 window.dispatchEvent(new CustomEvent('firebaseReady'));
             });
-            return;
-        }
-
-        if (!window.firebase || !window.firebase.initializeApp) {
-            console.warn('firebase-init: firebase SDK not yet loaded');
-            // If scripts haven't loaded synchronously, wait a short time and retry a few times
-            let tries = 0;
-            const maxTries = 20;
             const t = setInterval(() => {
                 tries++;
                 if (window.firebase && window.firebase.initializeApp) {

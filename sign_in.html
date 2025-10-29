@@ -5,64 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheMuLab - Sign In</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- Firebase Client SDK -->
+
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    
+
     <!-- Initialize Firebase -->
-    <script src="js/firebase-config.js"></script>
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWnavAW-AUcieISRo5EyKME82OXNzyhks",
+        authDomain: "chemulab-8a992.firebaseapp.com",
+        projectId: "chemulab-8a992",
+        storageBucket: "chemulab-8a992.appspot.com",
+        messagingSenderId: "547646773141",
+        appId: "1:547646773141:web:fd602d3887b49fcbef889c"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    </script>
+
+    <!-- Auth State Handling -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Verify Firebase is initialized
-        if (!firebase.apps.length) {
-            console.error('Firebase not initialized');
-            document.getElementById('errorMessage').textContent = 'Error initializing application. Please refresh the page.';
-            document.getElementById('errorMessage').style.display = 'block';
-            return;
-        }
-
-        // Set up auth state listener
+        // Check if already logged in
         firebase.auth().onAuthStateChanged(function(user) {
-            console.log('Auth state changed:', user ? 'logged in' : 'not logged in');
             if (user) {
+                console.log('User is signed in:', user.email);
                 const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
                 sessionStorage.removeItem('redirectAfterLogin');
                 window.location.href = redirectPath;
             }
         });
-
-        // Handle login form submission
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorMsg = document.getElementById('errorMessage');
-            errorMsg.style.display = 'none';
-
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then(function(userCredential) {
-                    console.log('Login successful:', userCredential.user.email);
-                })
-                .catch(function(error) {
-                    console.error('Login error:', error);
-                    errorMsg.textContent = error.message;
-                    errorMsg.style.display = 'block';
-                });
-        });
     });
     </script>
-    <script>
-    // Listen for auth state changes after Firebase is initialized
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            const redirectPath = sessionStorage.getItem('redirectAfterLogin') || 'index.html';
-            sessionStorage.removeItem('redirectAfterLogin');
-            window.location.href = redirectPath;
-        }
-    });
-    </script>
-    
+
     <style>
         .app-container {
             display: flex;
@@ -76,6 +56,7 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            margin-left: 0;
         }
 
         .auth-container {
@@ -99,193 +80,246 @@
             color: #000;
         }
 
-        .auth-form input {
-            padding: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.9);
+        .form-control {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             color: #000;
+            padding: 12px;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
             font-size: 16px;
         }
 
-        .auth-form button {
-            padding: 12px;
-            background: var(--accent-color, #87ceeb);
+        .form-control::placeholder {
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .btn {
+            padding: 12px 24px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            color: #000;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
             font-size: 16px;
-            transition: transform 0.2s ease;
         }
 
-        .auth-form button:hover {
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: #00c8ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
             transform: scale(1.02);
         }
 
-        .auth-toggle {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .auth-toggle button {
-            background: none;
-            border: none;
-            color: #000;
-            text-decoration: underline;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 5px;
-        }
-
         .error-message {
-            color: #ff0000;
-            background: rgba(255, 0, 0, 0.1);
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
             padding: 12px;
             border-radius: 5px;
-            margin-bottom: 15px;
-            display: none;
+            margin: 15px 0;
             text-align: center;
+            display: none;
             font-weight: 500;
         }
 
-        /* Remove sidebar from sign-in page */
+        .toggle-form {
+            text-align: center;
+            margin-top: 15px;
+            color: #000;
+        }
+
+        .toggle-form a {
+            color: #00c8ff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00c8ff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Hide sidebar on sign-in page */
         .sidebar {
             display: none;
         }
-
-        /* Adjust main content to take full width */
-        .main-content {
-            margin-left: 0;
-        }
     </style>
 </head>
+
 <body>
     <div class="app-container">
-        <div class="top-bar">
-            <span class="logo">CheMuLab</span>
-            <div class="nav-links">
+        <!-- Header -->
+        <nav class="navbar navbar-dark">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">CheMu Lab</a>
             </div>
-        </div>
+        </nav>
 
-
-
+        <!-- Main Content -->
         <div class="main-content">
             <div class="auth-container">
-                <div id="errorMessage" class="error-message"></div>
-                
                 <!-- Login Form -->
                 <form id="loginForm" class="auth-form">
-                    <h2>Sign In</h2>
-                    <input type="email" id="loginEmail" placeholder="Email" required>
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                    <button type="submit">Sign In</button>
+                    <h2>Login</h2>
+                    <div class="form-group">
+                        <input type="email" class="form-control" id="loginEmail" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="loginLoading" class="loading"></div>
+                    <div class="toggle-form">
+                        <p>Don't have an account? <a id="showRegister">Register here</a></p>
+                    </div>
                 </form>
 
-                <!-- Register Form (Initially Hidden) -->
+                <!-- Register Form -->
                 <form id="registerForm" class="auth-form" style="display: none;">
-                    <h2>Create Account</h2>
-                    <input type="text" id="registerUsername" placeholder="Username" required>
-                    <input type="email" id="registerEmail" placeholder="Email" required>
-                    <input type="password" id="registerPassword" placeholder="Password" required>
-                    <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
-                    <button type="submit">Create Account</button>
+                    <h2>Register</h2>
+                    <div class="form-group">
+                        <input type="email" class="form-control" id="registerEmail" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control" id="registerPassword" 
+                               placeholder="Password (min. 6 characters)" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control" id="confirmPassword" 
+                               placeholder="Confirm Password" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <div id="registerLoading" class="loading"></div>
+                    <div class="toggle-form">
+                        <p>Already have an account? <a id="showLogin">Login here</a></p>
+                    </div>
                 </form>
 
-                <div class="auth-toggle">
-                    <button id="toggleAuth">Don't have an account? Sign up</button>
-                </div>
+                <div id="errorMessage" class="error-message"></div>
             </div>
-            <script>
-                // DOM Elements
-                const loginForm = document.getElementById('loginForm');
-                const registerForm = document.getElementById('registerForm');
-                const toggleButton = document.getElementById('toggleAuth');
-                const errorMessage = document.getElementById('errorMessage');
-
-                // Toggle between login and register forms
-                toggleButton.addEventListener('click', () => {
-                    const isLogin = loginForm.style.display !== 'none';
-                    loginForm.style.display = isLogin ? 'none' : 'flex';
-                    registerForm.style.display = isLogin ? 'flex' : 'none';
-                    toggleButton.textContent = isLogin ? 
-                        'Already have an account? Sign in' : 
-                        "Don't have an account? Sign up";
-                    errorMessage.style.display = 'none';
-                });
-
-                // Show error message helper
-                function showError(message) {
-                    errorMessage.textContent = message;
-                    errorMessage.style.display = 'block';
-                }
-
-                // Handle Login
-                loginForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const email = document.getElementById('loginEmail').value;
-                    const password = document.getElementById('loginPassword').value;
-                    errorMessage.style.display = 'none';
-                    errorMessage.style.display = 'none';
-
-                    try {
-                        await firebase.auth().signInWithEmailAndPassword(email, password);
-                        // Auth state listener will handle redirect
-                    } catch (error) {
-                        console.error('Login error:', error);
-                        showError(error.message || 'Failed to sign in. Please check your credentials.');
-                    }
-                    } catch (error) {
-                        errorMessage.textContent = error.message || String(error);
-                        errorMessage.style.display = 'block';
-                    }
-                });
-
-                // Handle Registration
-                registerForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const username = document.getElementById('registerUsername').value;
-                    const email = document.getElementById('registerEmail').value;
-                    const password = document.getElementById('registerPassword').value;
-                    const confirmPassword = document.getElementById('confirmPassword').value;
-
-                    if (password !== confirmPassword) {
-                        errorMessage.textContent = 'Passwords do not match';
-                        errorMessage.style.display = 'block';
-                        return;
-                    }
-
-                    try {
-                        // Await register then login, and only redirect after success
-                        await AuthService.register(username, email, password);
-                        const user = await AuthService.login(email, password);
-                        if (user && user.uid) {
-                            window.location.href = 'index.html';
-                        } else {
-                            setTimeout(() => { window.location.href = 'index.html'; }, 300);
-                        }
-                    } catch (error) {
-                        errorMessage.textContent = error.message || String(error);
-                        errorMessage.style.display = 'block';
-                    }
-                });
-
-                // Check if user is already logged in — but wait for firebaseReady if available so we don't redirect prematurely
-                if (window.firebase && firebase.auth) {
-                    firebase.auth().onAuthStateChanged((user) => {
-                        if (user) window.location.href = 'index.html';
-                    });
-                } else {
-                    // Fallback: use legacy snapshot
-                    if (AuthService.isLoggedIn()) {
-                        window.location.href = 'index.html';
-                    }
-                }
-            </script>
-
         </div>
     </div>
-    <script src="js/script.js"></script>
+
+    <!-- Scripts -->
+    <script>
+        // DOM Elements
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginLoading = document.getElementById('loginLoading');
+        const registerLoading = document.getElementById('registerLoading');
+
+        // Toggle form visibility
+        document.getElementById('showRegister').addEventListener('click', () => {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+            errorMessage.textContent = '';
+            errorMessage.style.display = 'none';
+        });
+
+        document.getElementById('showLogin').addEventListener('click', () => {
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+            errorMessage.textContent = '';
+            errorMessage.style.display = 'none';
+        });
+
+        // Show error function
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            loginLoading.style.display = 'none';
+            registerLoading.style.display = 'none';
+        }
+
+        // Disable form during submission
+        function disableForm(form, loading) {
+            const inputs = form.querySelectorAll('input, button');
+            inputs.forEach(input => input.disabled = loading);
+        }
+
+        // Handle login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.style.display = 'none';
+            loginLoading.style.display = 'block';
+            disableForm(loginForm, true);
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                // Redirect will be handled by the auth state observer
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'An error occurred during login');
+                disableForm(loginForm, false);
+            }
+        });
+
+        // Handle registration
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.style.display = 'none';
+            registerLoading.style.display = 'block';
+            disableForm(registerForm, true);
+
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPass) {
+                showError('Passwords do not match');
+                disableForm(registerForm, false);
+                return;
+            }
+
+            try {
+                await firebase.auth().createUserWithEmailAndPassword(email, password);
+                // Redirect will be handled by the auth state observer
+            } catch (error) {
+                showError(error.message || 'An error occurred during registration');
+                disableForm(registerForm, false);
+            }
+        });
+    </script>
 </body>
 </html>
