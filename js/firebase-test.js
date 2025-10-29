@@ -12,53 +12,57 @@ async function testFirebaseConnection() {
     }
 
     // Test anonymous auth
-    const currentUser = firebase.auth().currentUser;
-    console.log('Current user:', currentUser ? {
-        uid: currentUser.uid,
-        isAnonymous: currentUser.isAnonymous
-    } : 'No user');
+    let currentUser = firebase.auth().currentUser;
+    if (currentUser) {
+        console.log('Current user:', { uid: currentUser.uid, isAnonymous: currentUser.isAnonymous });
+    } else {
+        console.log('No authenticated user currently. Will attempt anonymous sign-in now (if allowed by project).');
+        try {
+            if (window.firebase && firebase.auth) {
+                const anonResult = await firebase.auth().signInAnonymously().catch(e => { throw e; });
+                currentUser = firebase.auth().currentUser || (anonResult && anonResult.user);
+                if (currentUser) console.log('Anonymous sign-in succeeded:', { uid: currentUser.uid });
+            }
+        } catch (e) {
+            console.warn('Anonymous sign-in attempt failed:', e && e.code, e && e.message);
+            console.log('If anonymous sign-in is disabled, enable it in Firebase Console -> Authentication -> Sign-in method, or sign in with an email/password account. Skipping Firestore write test.');
+            return;
+        }
+    }
 
     // Test Firestore access with proper user-scoped collection
     try {
-        if (!currentUser) {
-            throw new Error('No authenticated user available');
-        }
-        
-        const testDoc = await firebase.firestore()
-            .collection('progress')
-            .doc(currentUser.uid)
-            .set({
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                testId: 'connection-test',
-                progress: {
-                    totalDiscoveries: 0,
-                    completedDiscoveries: 0,
-                    progressPercentage: 0,
-                    milestones: {
-                        beginner: false,
-                        intermediate: false,
-                        advanced: false,
-                        master: false
-                    }
-                }
-            });
+        await firebase.firestore().collection('progress').doc(currentUser.uid).set({
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            testId: 'connection-test',
+            progress: {
+                totalDiscoveries: 0,
+                completedDiscoveries: 0,
+                progressPercentage: 0,
+                milestones: { beginner: false, intermediate: false, advanced: false, master: false }
+            }
+        });
         console.log('Firestore write successful to progress collection');
-        
-        // Also test discoveries collection
-        await firebase.firestore()
-            .collection('discoveries')
-            .doc(currentUser.uid)
-            .set({
-                discoveries: [],
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
+
+        await firebase.firestore().collection('discoveries').doc(currentUser.uid).set({
+            discoveries: [],
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
         console.log('Firestore write successful to discoveries collection');
     } catch (error) {
-        console.error('Firestore write failed:', error);
+        // Print structured error info to help diagnose rules/auth/network issues
+        try {
+            console.error('Firestore write failed. Error code:', error && error.code, 'message:', error && error.message);
+            if (error && error.stack) console.error(error.stack);
+        } catch (logErr) {
+            console.error('Error while logging Firestore error', logErr);
+        }
+
+        // Helpful next steps
         if (!currentUser) {
-            console.log('Error: No authenticated user. Make sure Anonymous Authentication is enabled in Firebase Console');
+            console.log('No authenticated user. Enable Anonymous Authentication or sign in before attempting writes.');
         } else {
-            console.log('Check your Firestore security rules and make sure they allow write access to the correct collections');
+            console.log('Possible causes: Firestore security rules blocking writes, or the signed-in user lacks permissions. Check Firestore rules and Authentication state for this UID:', currentUser.uid);
         }
     }
 }

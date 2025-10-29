@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheMuLab - Sign In</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
     <style>
         .app-container {
             display: flex;
@@ -129,6 +135,7 @@
                 <form id="registerForm" class="auth-form" style="display: none;">
                     <h2>Create Account</h2>
                     <input type="text" id="registerUsername" placeholder="Username" required>
+                    <input type="email" id="registerEmail" placeholder="Email" required>
                     <input type="password" id="registerPassword" placeholder="Password" required>
                     <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
                     <button type="submit">Create Account</button>
@@ -164,10 +171,16 @@
                     const password = document.getElementById('loginPassword').value;
 
                     try {
-                        AuthService.login(username, password);
-                        window.location.href = 'index.html';
+                        // Await login so we only redirect after auth completes
+                        const user = await AuthService.login(username, password);
+                        if (user && user.uid) {
+                            window.location.href = 'index.html';
+                        } else {
+                            // Fallback: small delay to allow auth state to propagate then navigate
+                            setTimeout(() => { window.location.href = 'index.html'; }, 300);
+                        }
                     } catch (error) {
-                        errorMessage.textContent = error.message;
+                        errorMessage.textContent = error.message || String(error);
                         errorMessage.style.display = 'block';
                     }
                 });
@@ -176,6 +189,7 @@
                 registerForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     const username = document.getElementById('registerUsername').value;
+                    const email = document.getElementById('registerEmail').value;
                     const password = document.getElementById('registerPassword').value;
                     const confirmPassword = document.getElementById('confirmPassword').value;
 
@@ -186,18 +200,30 @@
                     }
 
                     try {
-                        AuthService.register(username, password);
-                        AuthService.login(username, password);
-                        window.location.href = 'index.html';
+                        // Await register then login, and only redirect after success
+                        await AuthService.register(username, email, password);
+                        const user = await AuthService.login(email, password);
+                        if (user && user.uid) {
+                            window.location.href = 'index.html';
+                        } else {
+                            setTimeout(() => { window.location.href = 'index.html'; }, 300);
+                        }
                     } catch (error) {
-                        errorMessage.textContent = error.message;
+                        errorMessage.textContent = error.message || String(error);
                         errorMessage.style.display = 'block';
                     }
                 });
 
-                // Check if user is already logged in
-                if (AuthService.isLoggedIn()) {
-                    window.location.href = 'index.html';
+                // Check if user is already logged in — but wait for firebaseReady if available so we don't redirect prematurely
+                if (window.firebase && firebase.auth) {
+                    firebase.auth().onAuthStateChanged((user) => {
+                        if (user) window.location.href = 'index.html';
+                    });
+                } else {
+                    // Fallback: use legacy snapshot
+                    if (AuthService.isLoggedIn()) {
+                        window.location.href = 'index.html';
+                    }
                 }
             </script>
 

@@ -23,7 +23,8 @@
                 await DiscoveryService.syncUserData(user.uid);
                 quickSignMessage.textContent = 'Synced successfully';
             } catch (e) {
-                quickSignMessage.textContent = 'Sync failed: ' + (e && e.message ? e.message : String(e));
+                quickSignMessage.textContent = 'Sync failed: ' + (e && e.message ? e.message : String(e)) + '\nUID: ' + (user.uid || 'n/a');
+                console.error('Sync failed after sign-in for UID', user.uid, e);
             }
         } else {
             statusText.textContent = 'Sign In';
@@ -38,14 +39,21 @@
 
     function init(){
         if (!window.firebase) {
-            console.warn('Firebase not loaded yet — quick-signin will initialize later');
+            // wait for firebaseReady event if available
+            if (!window._quickSigninWaiting) {
+                window._quickSigninWaiting = true;
+                window.addEventListener('firebaseReady', () => { window._quickSigninWaiting = false; init(); }, { once: true });
+            }
+            console.warn('Firebase not loaded yet — quick-signin will initialize when firebaseReady fires');
             return;
         }
 
-        const signInBtn = $('quickSignInBtn');
+    const signInBtn = $('quickSignInBtn');
+    const registerBtn = $('quickRegisterBtn');
         const signOutBtn = $('quickSignOutBtn');
         const emailInput = $('quickEmail');
         const passInput = $('quickPassword');
+    const usernameInput = $('quickUsername');
         const msg = $('quickSignMessage');
 
         if (signInBtn) {
@@ -63,6 +71,36 @@
                 } catch (err) {
                     console.error('Sign-in failed', err);
                     msg.textContent = 'Sign-in failed: ' + (err && err.message ? err.message : err);
+                }
+            });
+        }
+
+        if (registerBtn) {
+            registerBtn.addEventListener('click', async () => {
+                const username = usernameInput.value.trim();
+                const email = emailInput.value.trim();
+                const password = passInput.value;
+                if (!email || !password) { msg.textContent = 'Enter email & password to register'; return; }
+                msg.textContent = 'Registering...';
+                try {
+                    // Call AuthService.register which will link anonymous account if present
+                    const user = await AuthService.register(username || email.split('@')[0], email, password);
+                    msg.textContent = 'Registered and linked — UID: ' + (user && user.uid ? user.uid : 'unknown');
+                    try {
+                        await DiscoveryService.syncUserData(user.uid);
+                        msg.textContent = 'Synced successfully — UID: ' + user.uid;
+                    } catch (syncErr) {
+                        console.error('Post-register sync failed for UID', user && user.uid, syncErr);
+                        msg.textContent = 'Registered but sync failed: ' + (syncErr && syncErr.message ? syncErr.message : String(syncErr)) + ' — UID: ' + (user && user.uid);
+                    }
+                    updateUiForUser(user);
+                } catch (err) {
+                    console.error('Register failed', err);
+                    // Show error.code if available (useful for permission-denied, operation-not-allowed, etc.)
+                    const code = err && err.code ? err.code : null;
+                    msg.textContent = 'Register failed: ' + (err && err.message ? err.message : String(err)) + (code ? ' (code: ' + code + ')' : '');
+                    // If a user exists in auth despite the error, show the UID so user can inspect Authentication console
+                    try { const cu = firebase && firebase.auth && firebase.auth().currentUser; if (cu) msg.textContent += ' — created UID: ' + cu.uid; } catch (e) {}
                 }
             });
         }
