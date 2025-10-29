@@ -34,19 +34,14 @@
         function tryInit(){
             try {
                 window.firebase.initializeApp(window.FIREBASE_CONFIG);
-                // optional: attempt anonymous sign-in if no signed-in user
-                if (window.firebase.auth) {
-                    try {
-                        if (!window.firebase.auth().currentUser) {
-                            window.firebase.auth().signInAnonymously()
-                                .then(() => console.info('firebase-init: anonymous sign-in succeeded'))
-                                .catch((e) => console.warn('firebase-init: anonymous sign-in failed (check console and Firebase Console -> Authentication)', e && e.message, e));
-                        } else {
-                            console.info('firebase-init: auth already has a currentUser:', window.firebase.auth().currentUser && window.firebase.auth().currentUser.uid);
-                        }
-                    } catch (e) {
-                        console.warn('firebase-init: error while attempting anonymous sign-in', e);
-                    }
+                // NOTE: Automatic anonymous sign-in was removed for deployed sites because
+                // many Firebase projects disable anonymous auth or restrict that operation
+                // (resulting in auth/admin-restricted-operation). If you intentionally
+                // want anonymous users to be created automatically, re-enable this block
+                // after verifying the Anonymous provider is enabled in the Firebase
+                // Console (Authentication → Sign-in Method).
+                if (window.firebase && window.firebase.auth) {
+                    console.info('firebase-init: anonymous auto-signin disabled by default for deployed sites');
                 }
                 // make firestore available on service modules
                 try { window.firebase.firestore(); } catch (e) { /* ignore */ }
