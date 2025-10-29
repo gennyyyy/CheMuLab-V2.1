@@ -20,10 +20,7 @@ const DiscoveryService = {
                 return true;
             }
 
-            await this._loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
-            await this._loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js');
-            // load auth so we can optionally sign in anonymously
-            await this._loadScript('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js');
+            // Firebase SDK is now loaded via HTML script tags
 
             window.firebase.initializeApp(window.FIREBASE_CONFIG);
 
@@ -46,9 +43,94 @@ const DiscoveryService = {
         }
     },
 
-    async firebaseGetUserData(username) { if (!await this.ensureFirebase()) return null; try { const doc = await this._firebaseDb.collection('users').doc(username).get(); if (!doc.exists) return null; const payload = doc.data(); return payload.userData || null; } catch (err) { console.warn('firebaseGetUserData error', err); return null; } },
+    async firebaseGetUserData(userId) {
+        if (!await this.ensureFirebase()) return null;
+        try {
+            const doc = await this._firebaseDb.collection('progress').doc(userId).get();
+            if (!doc.exists) return null;
+            return doc.data();
+        } catch (err) {
+            console.warn('firebaseGetUserData error', err);
+            return null;
+        }
+    },
 
-    async firebaseSaveUserData(username, data) { if (!await this.ensureFirebase()) return false; try { await this._firebaseDb.collection('users').doc(username).set({ userData: data, updated: new Date().toISOString() }, { merge: true }); return true; } catch (err) { console.warn('firebaseSaveUserData error', err); return false; } },
+    async firebaseSaveUserData(userId, userData) {
+        if (!await this.ensureFirebase()) return false;
+        try {
+            await this._firebaseDb.collection('progress').doc(userId).set(userData);
+            return true;
+        } catch (err) {
+            console.warn('firebaseSaveUserData error', err);
+            return false;
+        }
+    },
+
+    async syncUserData(userId) {
+        if (!userId) return false;
+        
+        try {
+            // Get local data
+            const localData = this.getUserDataLocal(userId);
+            
+            // Get remote data
+            const remoteData = await this.firebaseGetUserData(userId);
+            
+            if (!remoteData) {
+                // No remote data exists, push local data to Firebase
+                if (localData) {
+                    await this.firebaseSaveUserData(userId, localData);
+                    this.dispatchSyncEvent('success', 'Progress saved to cloud');
+                }
+                return true;
+            }
+            
+            // Merge data (prefer remote progress if it's higher)
+            const mergedData = this.mergeUserData(localData, remoteData);
+            
+            // Save merged data both locally and remotely
+            this.saveUserDataLocal(userId, mergedData);
+            await this.firebaseSaveUserData(userId, mergedData);
+            
+            this.dispatchSyncEvent('success', 'Progress synced successfully');
+            return true;
+        } catch (err) {
+            console.error('Sync failed:', err);
+            this.dispatchSyncEvent('error', 'Sync failed. Will try again later');
+            return false;
+        }
+    },
+
+    mergeUserData(local, remote) {
+        if (!local) return remote;
+        if (!remote) return local;
+        
+        return {
+            ...local,
+            progress: {
+                ...local.progress,
+                totalDiscoveries: Math.max(local.progress.totalDiscoveries, remote.progress.totalDiscoveries),
+                completedDiscoveries: Math.max(local.progress.completedDiscoveries, remote.progress.completedDiscoveries),
+                progressPercentage: Math.max(local.progress.progressPercentage, remote.progress.progressPercentage),
+                milestones: {
+                    beginner: local.progress.milestones.beginner || remote.progress.milestones.beginner,
+                    intermediate: local.progress.milestones.intermediate || remote.progress.milestones.intermediate,
+                    advanced: local.progress.milestones.advanced || remote.progress.milestones.advanced,
+                    master: local.progress.milestones.master || remote.progress.milestones.master
+                }
+            },
+            discoveries: [...new Set([...local.discoveries, ...remote.discoveries])]
+        };
+    },
+
+    dispatchSyncEvent(type, message) {
+        window.dispatchEvent(new CustomEvent('progressSync', {
+            detail: { type, message }
+        }));
+    },
+
+    // Note: firebaseSaveUserData is defined earlier and writes to the 'progress' collection.
+    // Duplicate definitions were removed to keep a single source of truth for Firestore writes.
 
     getUserDataLocal(username) { const data = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + username); if (data) return JSON.parse(data); try { if (typeof AuthService !== 'undefined' && AuthService.STORAGE_KEYS && AuthService.STORAGE_KEYS.USER_PROGRESS) { const legacyKey = AuthService.STORAGE_KEYS.USER_PROGRESS + username; const legacy = localStorage.getItem(legacyKey); if (legacy) { let legacyObj = null; try { legacyObj = JSON.parse(legacy); } catch (e) { legacyObj = null; } const migrated = this.initializeUserData(username); if (legacyObj) { const discovered = Array.isArray(legacyObj.discoveredElements) ? legacyObj.discoveredElements : []; migrated.discoveries = discovered.map(sym => ({ id: String(sym), symbol: String(sym), name: String(sym), completed: true, dateDiscovered: new Date().toISOString() })); migrated.progress = { ...migrated.progress, totalDiscoveries: migrated.discoveries.length, completedDiscoveries: migrated.discoveries.length, progressPercentage: (migrated.discoveries.length / 118) * 100, milestones: { beginner: (migrated.discoveries.length / 118) * 100 >= 10, intermediate: (migrated.discoveries.length / 118) * 100 >= 50, advanced: (migrated.discoveries.length / 118) * 100 >= 75, master: (migrated.discoveries.length / 118) * 100 >= 100 } }; localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(migrated)); return migrated; } } } } catch (e) { console.warn('Migration check failed', e); } return null; },
 

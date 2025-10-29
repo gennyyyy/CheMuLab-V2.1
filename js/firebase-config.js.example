@@ -1,9 +1,9 @@
-// Firebase configuration (copied from Firebase Console — web app)
+// Firebase configuration
 window.FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDWnavAW-AUcieISRo5EyKME82OXNzyhks",
+    apiKey: "YOUR-ACTUAL-API-KEY-FROM-FIREBASE-CONSOLE",
     authDomain: "chemulab-8a992.firebaseapp.com",
     projectId: "chemulab-8a992",
-    storageBucket: "chemulab-8a992.firebasestorage.app",
+    storageBucket: "chemulab-8a992.firebaseapp.com", // Note: This should be .firebaseapp.com not .firebasestore.app
     messagingSenderId: "547646773141",
     appId: "1:547646773141:web:fd602d3887b49fcbef889c"
 };

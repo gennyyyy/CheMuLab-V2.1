@@ -3,6 +3,29 @@ class ProgressTracker {
         this.container = document.getElementById(containerId);
         this.currentUser = AuthService.getCurrentUser();
         this.initialize();
+        
+        // Set up periodic sync
+        this.setupSync();
+    }
+
+    setupSync() {
+        // Initial sync
+        if (this.currentUser) {
+            DiscoveryService.syncUserData(this.currentUser.uid);
+        }
+
+        // Sync every 5 minutes and on page visibility change
+        setInterval(() => {
+            if (this.currentUser) {
+                DiscoveryService.syncUserData(this.currentUser.uid);
+            }
+        }, 5 * 60 * 1000);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.currentUser) {
+                DiscoveryService.syncUserData(this.currentUser.uid);
+            }
+        });
     }
 
     initialize() {
