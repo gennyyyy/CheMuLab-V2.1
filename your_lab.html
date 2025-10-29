@@ -11,12 +11,6 @@
     <script src="js/discovery-service.js"></script>
     <script src="js/chemistry_craft.js"></script>
     <script src="js/script.js"></script>
-    <script>
-    if (!firebase.auth().currentUser) {
-        sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
-        window.location.href = 'sign_in.html';
-    }
-</script>
 </head>
 <body>
     <div class="app-container">

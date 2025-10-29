@@ -8,10 +8,8 @@
         }
 
         if (window.firebase && window.firebase.apps && window.firebase.apps.length) {
-            // already initialized - but make sure auth is ready
-            firebase.auth().onAuthStateChanged(() => {
-                window.dispatchEvent(new CustomEvent('firebaseReady'));
-            });
+            // already initialized
+            window.dispatchEvent(new CustomEvent('firebaseReady'));
             return;
         }
 
