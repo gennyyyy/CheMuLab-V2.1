@@ -9,6 +9,12 @@
     <script src="js/route-protection.js"></script>
     <script src="js/discovery-service.js"></script>
     <script src="js/progress-tracker.js"></script>
+    <script>
+    if (!firebase.auth().currentUser) {
+        sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
+        window.location.href = 'sign_in.html';
+    }
+    </script>
 </head>
 <body>
     <div class="app-container">

@@ -24,6 +24,13 @@
             z-index: 1;
         }
     </style>
+
+<script>
+    if (!firebase.auth().currentUser) {
+        sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
+        window.location.href = 'sign_in.html';
+    }
+</script>
 </head>
 <body>
     <div class="app-container">
