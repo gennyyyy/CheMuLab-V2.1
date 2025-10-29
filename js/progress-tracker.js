@@ -16,12 +16,35 @@ class ProgressTracker {
         
         // Listen for progress updates
         document.addEventListener('progressUpdate', (e) => this.updateDisplay(e.detail));
+        
+        // Set up sync status display
+        this.initializeSyncStatus();
+    }
+
+    initializeSyncStatus() {
+        const syncStatus = document.getElementById('syncStatus');
+        if (!syncStatus) return;
+
+        // Listen for sync events
+        window.addEventListener('progressSync', (e) => {
+            const { type, message } = e.detail;
+            if (syncStatus) {
+                syncStatus.textContent = message;
+                syncStatus.style.color = type === 'error' ? '#f44336' : '#4CAF50';
+                if (type !== 'error') {
+                    setTimeout(() => {
+                        syncStatus.textContent = '';
+                    }, 3000);
+                }
+            }
+        });
     }
 
     createProgressElements() {
         this.container.innerHTML = `
             <div class="progress-section">
                 <h2>My Progress</h2>
+                <div id="syncStatus" style="font-size:0.9em;color:#666;margin-bottom:10px;"></div>
                 <div class="progress-bar-container">
                     <div class="progress-bar" id="progressBar"></div>
                     <div class="progress-text" id="progressText">0%</div>
@@ -151,13 +174,23 @@ class ProgressTracker {
         document.head.appendChild(style);
     }
 
-    loadProgress() {
+    async loadProgress() {
         if (!this.currentUser) return;
 
-        const progress = DiscoveryService.getProgress(this.currentUser.username);
-        if (progress) {
-            this.updateDisplay(progress);
-            this.loadDiscoveries();
+        try {
+            const userData = await DiscoveryService.getUserData(this.currentUser.username);
+            if (userData?.progress) {
+                this.updateDisplay(userData.progress);
+                this.loadDiscoveries();
+            }
+        } catch (err) {
+            console.error('Failed to load progress:', err);
+            // Fall back to local data
+            const progress = DiscoveryService.getProgress(this.currentUser.username);
+            if (progress) {
+                this.updateDisplay(progress);
+                this.loadDiscoveries();
+            }
         }
     }
 

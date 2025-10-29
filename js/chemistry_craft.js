@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // CLEAN UP OLD CORRUPTED DISCOVERIES (like "Mo Mo")
     const currentUser = AuthService.getCurrentUser();
     if (currentUser) {
-        const userData = DiscoveryService.getUserData(currentUser.username);
+        const userData = DiscoveryService.getUserDataLocal(currentUser.username);
         if (userData && userData.discoveries) {
             // Remove invalid discoveries
             userData.discoveries = userData.discoveries.filter(d => {
@@ -429,8 +429,8 @@ function loadSavedDiscoveries() {
 
     console.log('[ChemistryCraft] Loading discoveries for user:', currentUser.username);
     
-    // Get user data from DiscoveryService
-    const userData = DiscoveryService.getUserData(currentUser.username);
+    // Get user data from local DiscoveryService cache
+    const userData = DiscoveryService.getUserDataLocal(currentUser.username);
     if (!userData || !userData.discoveries) {
         console.log('[ChemistryCraft] No saved discoveries found');
         return;
@@ -531,7 +531,7 @@ function loadUserData(username) {
             return;
         }
 
-        const userDiscoveries = DiscoveryService.getUserData(username);
+    const userDiscoveries = DiscoveryService.getUserDataLocal(username);
         
         // Format user data for display
         const displayData = {
@@ -559,7 +559,7 @@ function debugClearDiscoveries() {
 
     if (confirm(`Are you sure you want to clear all discoveries for ${selectedUsername}?`)) {
         try {
-            let userData = DiscoveryService.getUserData(selectedUsername);
+            let userData = DiscoveryService.getUserDataLocal(selectedUsername);
             if (userData) {
                 userData.discoveries = [];
                 DiscoveryService.saveUserData(selectedUsername, userData);
@@ -582,7 +582,7 @@ function debugResetProgress() {
     if (confirm(`Are you sure you want to reset all progress for ${selectedUsername}?`)) {
         try {
             // Clear discoveries
-            let userData = DiscoveryService.getUserData(selectedUsername);
+            let userData = DiscoveryService.getUserDataLocal(selectedUsername);
             if (userData) {
                 userData.discoveries = [];
                 userData.lastActive = Date.now();
@@ -637,7 +637,7 @@ function updateDebugPanel() {
     }
     
     if (debugStorageDiscoveries && user) {
-        const userData = DiscoveryService.getUserData(user.username);
+    const userData = DiscoveryService.getUserDataLocal(user.username);
         if (userData && userData.discoveries) {
             debugStorageDiscoveries.textContent = userData.discoveries.length;
         } else {
