@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheMuLab - Your Lab</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="chemistry_craft.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chemistry_craft.css">
     <script src="js/auth.js"></script>
     <script src="js/route-protection.js"></script>
+    <script src="js/discovery-service.js"></script>
+    <script src="js/chemistry_craft.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -47,13 +50,6 @@
         </div>
 
         <div class="main-content">
-            <!-- Debug panel: shows current user and stored user_data (for troubleshooting) -->
-            <div id="debugPanel" style="position:fixed;right:12px;bottom:12px;background:rgba(0,0,0,0.6);color:#fff;padding:8px;border-radius:6px;z-index:9999;font-size:12px;max-width:300px;">
-                <div><strong>Debug</strong></div>
-                <div id="debugUser">User: (none)</div>
-                <pre id="debugData" style="white-space:pre-wrap;max-height:200px;overflow:auto;margin:6px 0 0;padding:6px;background:rgba(255,255,255,0.06);color:#fff;border-radius:4px;font-size:11px;">no data</pre>
-                <button id="debugRefresh" style="margin-top:6px;padding:4px 6px;border-radius:4px;border:none;cursor:pointer;">Refresh</button>
-            </div>
             <div class="lab-interface">
                 <div class="elements-panel">
                     <h3>Elements</h3>
@@ -91,38 +87,52 @@
                 </div>
             </div>
         </div>
-        <script src="script.js"></script>
-        <script src="js/discovery-service.js"></script>
-        <script src="chemistry_craft.js"></script>
-        <script>
-            // Debug panel behavior
-            document.addEventListener('DOMContentLoaded', () => {
-                const btn = document.getElementById('debugRefresh');
-                const userEl = document.getElementById('debugUser');
-                const dataEl = document.getElementById('debugData');
+    </div>
 
-                function refreshDebug() {
-                    const user = (window.AuthService && AuthService.getCurrentUser && AuthService.getCurrentUser());
-                    if (user) {
-                        userEl.textContent = 'User: ' + user.username;
-                        const key = 'chemulab_user_data_' + user.username;
-                        const raw = localStorage.getItem(key);
-                        try {
-                            dataEl.textContent = raw ? JSON.stringify(JSON.parse(raw), null, 2) : '(no data)';
-                        } catch (e) {
-                            dataEl.textContent = raw;
-                        }
-                    } else {
-                        userEl.textContent = 'User: (none)';
-                        dataEl.textContent = '(no data)';
-                    }
-                }
+    <!-- DEBUG MONITOR (Only visible to admin) -->
+    <div id="debugPanels" style="display: none;">
+        <div style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.9); color: #0f0; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; width: 400px; z-index: 9999; border: 2px solid #0f0;">
+            <div style="color: #fff; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔍 DEBUG PANEL</span>
+                <button onclick="toggleDebugExpand()" style="background: none; border: 1px solid #0f0; color: #0f0; padding: 2px 6px; cursor: pointer; font-size: 10px;">▼</button>
+            </div>
 
-                btn.addEventListener('click', refreshDebug);
-                // auto refresh on load
-                refreshDebug();
-            });
-        </script>
+            <!-- Basic Info (Always Visible) -->
+            <div>Current User: <span id="debugUser" style="color: #ff0;">(none)</span></div>
+            <div>Discoveries in Memory: <span id="debugMemoryDiscoveries" style="color: #ff0;">0</span></div>
+            <div>Discoveries in Storage: <span id="debugStorageDiscoveries" style="color: #ff0;">0</span></div>
+
+            <!-- Expanded Debug Tools (Toggle) -->
+            <div id="debugExpanded" style="display: none; margin-top: 10px; border-top: 1px solid #0f0; padding-top: 10px;">
+                <!-- User Selection -->
+                <div style="margin-bottom: 10px;">
+                    <label style="display: block; margin-bottom: 5px;">Select User:</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="debugUserSelect" style="flex: 1; background: #000; color: #0f0; border: 1px solid #0f0; padding: 3px;">
+                            <option value="">Loading users...</option>
+                        </select>
+                        <button onclick="refreshUserList()" style="background: none; border: 1px solid #0f0; color: #0f0; padding: 2px 6px; cursor: pointer;">↻</button>
+                    </div>
+                </div>
+
+                <!-- User Data Display -->
+                <div style="margin-bottom: 10px;">
+                    <div style="margin-bottom: 5px;">User Data:</div>
+                    <div id="debugUserData" style="background: rgba(0,255,0,0.1); padding: 5px; max-height: 100px; overflow-y: auto; font-size: 10px;">
+                        Select a user to view data
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                    <button onclick="debugClearDiscoveries()" style="background: none; border: 1px solid #0f0; color: #0f0; padding: 3px 8px; cursor: pointer;">Clear Discoveries</button>
+                    <button onclick="debugResetProgress()" style="background: none; border: 1px solid #0f0; color: #0f0; padding: 3px 8px; cursor: pointer;">Reset Progress</button>
+                    <button onclick="debugDeleteUser()" style="background: none; border: 1px solid #f00; color: #f00; padding: 3px 8px; cursor: pointer;">Delete User</button>
+                </div>
+
+                <div style="margin-top: 10px; font-size: 10px; color: #888;">Admin Debug Tools v1.0</div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

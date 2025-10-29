@@ -191,13 +191,22 @@ const combinationRules = {
     'Si+C': { result: 'SiC', name: 'Silicon Carbide', description: 'Known as carborundum, used as abrasive' }
 };
 
-// Keep track of discovered compounds
-let discoveries = new Set();
+// Debug mode state
+let debugMode = false;
 
 // Initialize the interface
 document.addEventListener('DOMContentLoaded', () => {
     const elementGrid = document.getElementById('elementGrid');
     const combineBtn = document.getElementById('combineBtn');
+    
+    // Load saved discoveries for the current user
+    loadSavedDiscoveries();
+    
+    // Show debug panel for admins
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user && user.role === 'admin') {
+        document.querySelector('.debug-panel').style.display = 'block';
+    }
     const resultArea = document.getElementById('resultArea');
     const discoveriesList = document.getElementById('discoveriesList');
     const searchInput = document.getElementById('elementSearch');
@@ -290,9 +299,27 @@ function combineElements() {
     
     if (combination) {
         displayResult(combination);
-        if (!discoveries.has(combination.result)) {
-            discoveries.add(combination.result);
+        
+        // Get current user
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (user) {
+            const discovery = {
+                id: combination.result,
+                name: combination.name,
+                formula: combination.result,
+                description: combination.description,
+                elements: [element1, element2],
+                completed: true
+            };
+            
+            // Add discovery using DiscoveryService
+            DiscoveryService.addDiscovery(user.username, discovery);
             addToDiscoveries(combination);
+            
+            // Update debug info if in debug mode
+            if (debugMode) {
+                updateDebugInfo();
+            }
         }
     } else {
         displayNoResult();
@@ -322,11 +349,123 @@ function displayNoResult() {
 }
 
 function addToDiscoveries(discovery) {
+    console.log('[ChemistryCraft] addToDiscoveries called with:', discovery);
+    
+    // 1. CHECK IF USER IS LOGGED IN
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) {
+        console.error('[ChemistryCraft] ERROR: No user logged in, cannot save discovery');
+        alert('Please log in to save discoveries');
+        return;
+    }
+    console.log('[ChemistryCraft] Current user:', currentUser.username);
+
+    // 2. CREATE DISCOVERY DATA OBJECT
+    const discoveryData = {
+        id: discovery.result,           // e.g., "CH4"
+        symbol: discovery.result,       // e.g., "CH4"
+        name: discovery.name,           // e.g., "Methane"
+        completed: true,
+        type: 'compound',
+        description: discovery.description
+    };
+    
+    console.log('[ChemistryCraft] Saving discovery to DiscoveryService:', discoveryData);
+
+    // 3. SAVE TO DISCOVERYSERVICE (LOCALSTORAGE)
+    try {
+        DiscoveryService.addDiscovery(currentUser.username, discoveryData);
+        console.log('[ChemistryCraft] ✓ Discovery saved successfully');
+    } catch (error) {
+        console.error('[ChemistryCraft] ✗ Failed to save discovery:', error);
+        return;
+    }
+
+    // 4. UPDATE UI - ADD TO DISCOVERIES LIST
     const discoveriesList = document.getElementById('discoveriesList');
+    if (!discoveriesList) {
+        console.error('[ChemistryCraft] ERROR: discoveriesList element not found');
+        return;
+    }
+
     const discoveryItem = document.createElement('div');
     discoveryItem.className = 'discovery-item';
     discoveryItem.innerHTML = `
-        <span>${discovery.result} - ${discovery.name}</span>
+        <span><strong>${discovery.result}</strong> - ${discovery.name}</span>
     `;
     discoveriesList.appendChild(discoveryItem);
+    
+    console.log('[ChemistryCraft] ✓ Discovery added to UI');
+
+    // 5. UPDATE DEBUG PANEL
+    updateDebugPanel();
+}
+
+// Load saved discoveries from DiscoveryService
+function loadSavedDiscoveries() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) {
+        const discoveries = DiscoveryService.getDiscoveries(user.username);
+        const discoveriesList = document.getElementById('discoveriesList');
+        discoveriesList.innerHTML = ''; // Clear current list
+        
+        discoveries.forEach(discovery => {
+            const discoveryItem = document.createElement('div');
+            discoveryItem.className = 'discovery-item';
+            discoveryItem.innerHTML = `
+                <span>${discovery.formula} - ${discovery.name}</span>
+            `;
+            discoveriesList.appendChild(discoveryItem);
+        });
+
+        // Update debug info if in debug mode
+        if (debugMode) {
+            updateDebugInfo();
+        }
+    }
+}
+
+// Debug panel functions
+function toggleDebug() {
+    debugMode = !debugMode;
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.style.display = debugMode ? 'block' : 'none';
+    if (debugMode) {
+        updateDebugInfo();
+    }
+}
+
+function updateDebugInfo() {
+    const debugInfo = document.getElementById('debugInfo');
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) {
+        const userData = DiscoveryService.getUserData(user.username);
+        const progress = userData.progress;
+        debugInfo.innerHTML = `
+            <pre>
+User: ${user.username}
+Total Discoveries: ${progress.totalDiscoveries}
+Completed Discoveries: ${progress.completedDiscoveries}
+Progress: ${progress.progressPercentage.toFixed(2)}%
+
+Milestones:
+- Beginner (10%): ${progress.milestones.beginner ? '✓' : '✗'}
+- Intermediate (50%): ${progress.milestones.intermediate ? '✓' : '✗'}
+- Advanced (75%): ${progress.milestones.advanced ? '✓' : '✗'}
+- Master (100%): ${progress.milestones.master ? '✓' : '✗'}
+
+Last Login: ${new Date(userData.credentials.lastLogin).toLocaleString()}
+            </pre>
+        `;
+    }
+}
+
+function clearAllDiscoveries() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user && confirm('Are you sure you want to clear all discoveries? This cannot be undone.')) {
+        // Reset user data
+        DiscoveryService.initializeUserData(user.username);
+        // Reload discoveries list
+        loadSavedDiscoveries();
+    }
 }
