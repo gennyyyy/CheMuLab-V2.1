@@ -597,6 +597,37 @@ function debugResetProgress() {
     }
 }
 
+// Run migration for selected user (debug helper)
+function debugRunMigration() {
+    const username = selectedUsername || (AuthService.getCurrentUser() && AuthService.getCurrentUser().username);
+    if (!username) {
+        alert('Please select a user or sign in first');
+        return;
+    }
+
+    try {
+        const res = DiscoveryService.migrateLegacy(username);
+        console.log('[ChemistryCraft] Migration result:', res);
+        let msg = `Migration for ${username}:\n`;
+        msg += `Found legacy: ${res.foundLegacy}\n`;
+        if (res.foundLegacy) {
+            msg += `Legacy key: ${res.legacyKey}\n`;
+            msg += `Migrated discoveries: ${res.migratedCount}\n`;
+        }
+        if (res.error) msg += `Error: ${res.error}\n`;
+        alert(msg);
+        // Refresh UI counts
+        updateDebugPanel();
+        // Also reload discoveries in UI if we're on the Your Lab page
+        if (window.location.pathname.endsWith('your_lab.html')) {
+            loadSavedDiscoveries();
+        }
+    } catch (err) {
+        console.error('Migration failed', err);
+        alert('Migration failed — see console for details');
+    }
+}
+
 function debugDeleteUser() {
     if (!selectedUsername) {
         alert('Please select a user first');
