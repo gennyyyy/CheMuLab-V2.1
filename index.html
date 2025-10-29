@@ -31,6 +31,16 @@
                 <div class="sidebar-icon">&#128100;</div>
                 <span id="userStatusText">Sign In</span>
             </div>
+            <!-- Quick sign-in form -->
+            <div id="quickSignIn" style="display:none; margin-top:6px;">
+                <input id="quickUsername" placeholder="username (optional)" style="padding:4px;margin-right:4px;" />
+                <input id="quickEmail" placeholder="email" style="padding:4px;margin-right:4px;" />
+                <input id="quickPassword" type="password" placeholder="password" style="padding:4px;margin-right:4px;" />
+                <button id="quickSignInBtn" style="padding:4px 8px;">Sign In</button>
+                <button id="quickRegisterBtn" style="padding:4px 8px;">Register (link anon)</button>
+                <button id="quickSignOutBtn" style="padding:4px 8px; display:none;">Sign Out</button>
+                <div id="quickSignMessage" style="font-size:0.9em;color:#666;margin-top:6px;"></div>
+            </div>
         </div>
 
         <div class="sidebar">

@@ -19,8 +19,7 @@ async function updateUserStatus() {
         
         if (!userQuery.empty) {
             const usernameDoc = userQuery.docs[0];
-            const username = usernameDoc.id;
-            userStatusText.textContent = `${username} (Logout)`;
+            userStatusText.textContent = usernameDoc.id; // username is the document ID
             return;
         }
 
@@ -28,14 +27,12 @@ async function updateUserStatus() {
         const profileDoc = await firebase.firestore().collection('users').doc(user.uid).get();
         if (profileDoc.exists) {
             const profile = profileDoc.data();
-            const username = profile.username || user.email || 'User';
-            userStatusText.textContent = `${username} (Logout)`;
+            userStatusText.textContent = profile.username || user.email;
             return;
         }
 
         // Last resort: show email
-        const username = user.email || 'User';
-        userStatusText.textContent = `${username} (Logout)`;
+        userStatusText.textContent = user.email;
     } catch (e) {
         console.warn('Error loading username:', e);
         userStatusText.textContent = user.email;
