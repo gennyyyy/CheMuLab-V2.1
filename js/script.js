@@ -1,14 +1,41 @@
 // Update the user status display with the current user's info
-function updateUserStatus() {
+async function updateUserStatus() {
     const userStatusText = document.getElementById('userStatusText');
-    const currentUser = AuthService.getCurrentUser();
+    if (!userStatusText) return;
     
-    if (currentUser) {
-        // Show username if available, fall back to email, then uid
-        const displayName = currentUser.username || currentUser.email || currentUser.uid;
-        userStatusText.textContent = displayName + (currentUser.isAdmin ? ' (Admin)' : '');
-    } else {
+    // Get current Firebase user
+    const user = firebase.auth().currentUser;
+    if (!user) {
         userStatusText.textContent = 'Sign In';
+        return;
+    }
+
+    try {
+        // First check usernames collection (maps username → uid)
+        const userQuery = await firebase.firestore().collection('usernames')
+            .where('uid', '==', user.uid)
+            .limit(1)
+            .get();
+        
+        if (!userQuery.empty) {
+            const usernameDoc = userQuery.docs[0];
+            userStatusText.textContent = usernameDoc.id; // username is the document ID
+            return;
+        }
+
+        // Fallback to users/{uid} profile
+        const profileDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+        if (profileDoc.exists) {
+            const profile = profileDoc.data();
+            userStatusText.textContent = profile.username || user.email;
+            return;
+        }
+
+        // Last resort: show email
+        userStatusText.textContent = user.email;
+    } catch (e) {
+        console.warn('Error loading username:', e);
+        userStatusText.textContent = user.email;
     }
 }
 
@@ -20,9 +47,23 @@ window.addEventListener('firebaseReady', () => {
 document.addEventListener('DOMContentLoaded', function() {
     const app = document.querySelector('.app-container');
     const btn = document.getElementById('sidebarToggle');
+    const userStatus = document.getElementById('userStatus');
+    const userStatusText = document.getElementById('userStatusText');
     
-    // Update user status on page load
-    updateUserStatus();
+    if (userStatus && userStatusText) {
+        // Initial update
+        updateUserStatus();
+        
+        // Handle sign-out button
+        userStatus.addEventListener('click', function() {
+            const currentUser = AuthService.getCurrentUser();
+            if (currentUser) {
+                AuthService.logout();
+            } else {
+                window.location.href = 'sign_in.html';
+            }
+        });
+    }
     
     // Set active page indicator based on current URL
     const currentPath = window.location.pathname;
