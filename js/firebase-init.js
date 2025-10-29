@@ -1,15 +1,23 @@
 // firebase-init.js
 // Ensures Firebase is initialized as early as possible and emits a 'firebaseReady' event.
 (function(){
+    function logInit(message) {
+        console.info('[Firebase Init]', message);
+    }
+
     try {
+        logInit('Starting initialization...');
+        
         if (!window.FIREBASE_CONFIG) {
             console.warn('firebase-init: FIREBASE_CONFIG not found on window');
             return;
         }
 
         if (window.firebase && window.firebase.apps && window.firebase.apps.length) {
+            logInit('Firebase already initialized, waiting for auth...');
             // already initialized - but make sure auth is ready
-            firebase.auth().onAuthStateChanged(() => {
+            firebase.auth().onAuthStateChanged((user) => {
+                logInit(`Auth ready! User ${user ? 'logged in' : 'not logged in'}`);
                 window.dispatchEvent(new CustomEvent('firebaseReady'));
             });
             return;
@@ -27,7 +35,7 @@
                     tryInit();
                 } else if (tries >= maxTries) {
                     clearInterval(t);
-                    console.warn('firebase-init: firebase SDK did not load in time');
+                    console.error('firebase-init: Firebase SDK did not load in time');
                 }
             }, 200);
             return;
@@ -35,19 +43,31 @@
 
         function tryInit(){
             try {
+                logInit('Initializing Firebase app...');
                 window.firebase.initializeApp(window.FIREBASE_CONFIG);
-                // NOTE: Automatic anonymous sign-in was removed for deployed sites because
-                // many Firebase projects disable anonymous auth or restrict that operation
-                // (resulting in auth/admin-restricted-operation). If you intentionally
-                // want anonymous users to be created automatically, re-enable this block
-                // after verifying the Anonymous provider is enabled in the Firebase
-                // Console (Authentication → Sign-in Method).
+                
+                // Initialize auth and wait for state
                 if (window.firebase && window.firebase.auth) {
-                    console.info('firebase-init: anonymous auto-signin disabled by default for deployed sites');
+                    logInit('Waiting for auth state...');
+                    firebase.auth().onAuthStateChanged((user) => {
+                        logInit(`Initial auth state: ${user ? 'logged in' : 'not logged in'}`);
+                    });
                 }
-                // make firestore available on service modules
-                try { window.firebase.firestore(); } catch (e) { /* ignore */ }
+
+                // Initialize Firestore
+                try { 
+                    window.firebase.firestore();
+                    logInit('Firestore initialized');
+                } catch (e) { 
+                    console.warn('Failed to initialize Firestore:', e);
+                }
+
+                logInit('Firebase ready!');
                 window.dispatchEvent(new CustomEvent('firebaseReady'));
+            } catch (error) {
+                console.error('Error initializing Firebase:', error);
+                throw error;
+            }
                 console.info('firebase-init: Firebase initialized and firebaseReady dispatched');
             } catch (err) {
                 console.error('firebase-init: failed to initialize Firebase', err);

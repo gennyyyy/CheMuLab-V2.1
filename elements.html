@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheMuLab - Elements</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Firebase configuration and init -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+
+    <!-- App Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/route-protection.js"></script>
     <script src="js/discovery-service.js"></script>
@@ -26,10 +36,14 @@
     </style>
 
 <script>
-    if (!firebase.auth().currentUser) {
-        sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
-        window.location.href = 'sign_in.html';
-    }
+    // Wait for firebase to be ready before checking auth
+    window.addEventListener('firebaseReady', () => {
+        const user = window.firebase && firebase.auth().currentUser;
+        if (!user) {
+            sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
+            window.location.href = 'sign_in.html';
+        }
+    });
 </script>
 </head>
 <body>
