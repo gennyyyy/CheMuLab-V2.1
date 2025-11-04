@@ -41,10 +41,33 @@
                 // after verifying the Anonymous provider is enabled in the Firebase
                 // Console (Authentication → Sign-in Method).
                 if (window.firebase && window.firebase.auth) {
-                    console.info('firebase-init: anonymous auto-signin disabled by default for deployed sites');
+                    // Try to restore the user's auth state
+                    window.firebase.auth().onAuthStateChanged(user => {
+                        console.log('Auth state changed:', user ? 'User signed in' : 'No user');
+                        if (user) {
+                            window.dispatchEvent(new CustomEvent('userSignedIn', { detail: { uid: user.uid } }));
+                        } else {
+                            // Fall back to anonymous sign-in if no user is signed in
+                            window.firebase.auth().signInAnonymously()
+                                .then(result => {
+                                    console.log('Anonymous sign-in successful:', result.user.uid);
+                                    window.dispatchEvent(new CustomEvent('userSignedIn', { detail: { uid: result.user.uid, isAnonymous: true } }));
+                                })
+                                .catch(error => {
+                                    console.warn('Anonymous sign-in failed:', error);
+                                    // Still dispatch firebaseReady even if auth fails
+                                    window.dispatchEvent(new CustomEvent('firebaseReady'));
+                                });
+                        }
+                    });
                 }
                 // make firestore available on service modules
-                try { window.firebase.firestore(); } catch (e) { /* ignore */ }
+                try { 
+                    window.firebase.firestore();
+                    console.log('Firestore initialized');
+                } catch (e) { 
+                    console.warn('Failed to initialize Firestore:', e);
+                }
                 window.dispatchEvent(new CustomEvent('firebaseReady'));
                 console.info('firebase-init: Firebase initialized and firebaseReady dispatched');
             } catch (err) {

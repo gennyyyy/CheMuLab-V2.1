@@ -54,8 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const userStatusText = document.getElementById('userStatusText');
     
     if (userStatus && userStatusText) {
-        // Initial update
-        updateUserStatus();
+        // Initial update — call now only if Firebase is ready, otherwise wait for firebaseReady
+        if (window.firebase && firebase.auth) {
+            updateUserStatus();
+        } else {
+            window.addEventListener('firebaseReady', () => {
+                try { updateUserStatus(); } catch (e) { /* ignore */ }
+            }, { once: true });
+        }
         
         // Handle sign-out button
         userStatus.addEventListener('click', function() {

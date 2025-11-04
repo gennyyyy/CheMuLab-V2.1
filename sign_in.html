@@ -11,7 +11,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/account_check.js"></script>
     <style>
         .app-container {
             display: flex;
@@ -88,7 +87,7 @@
             padding: 5px;
         }
 
-        .error-message {
+                .error-message {
             color: #ff0000;
             background: rgba(255, 0, 0, 0.1);
             padding: 12px;
@@ -97,6 +96,28 @@
             display: none;
             text-align: center;
             font-weight: 500;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .success-message {
+            color: #008000;
+            background: rgba(0, 128, 0, 0.1);
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid rgba(0, 128, 0, 0.3);
+        }
+
+        .input-error {
+            border: 2px solid #ff0000 !important;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
         /* Remove sidebar from sign-in page */
@@ -121,8 +142,9 @@
 
 
         <div class="main-content">
-            <div class="auth-container">
+                        <div class="auth-container">
                 <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
                 
                 <!-- Login Form -->
                 <form id="loginForm" class="auth-form">
@@ -148,13 +170,34 @@
             </div>
             <script src="js/auth.js"></script>
             <script>
-                // DOM Elements
+                                // DOM Elements
                 const loginForm = document.getElementById('loginForm');
                 const registerForm = document.getElementById('registerForm');
                 const toggleButton = document.getElementById('toggleAuth');
                 const errorMessage = document.getElementById('errorMessage');
+                const successMessage = document.getElementById('successMessage');
 
-                // Toggle between login and register forms
+                // Helper function to show error message
+                function showError(message) {
+                    errorMessage.textContent = message;
+                    errorMessage.style.display = 'block';
+                    successMessage.style.display = 'none';
+                }
+
+                // Helper function to show success message
+                function showSuccess(message) {
+                    successMessage.textContent = message;
+                    successMessage.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                }
+
+                // Helper function to clear messages
+                function clearMessages() {
+                    errorMessage.style.display = 'none';
+                    successMessage.style.display = 'none';
+                }
+
+                                // Toggle between login and register forms
                 toggleButton.addEventListener('click', () => {
                     const isLogin = loginForm.style.display !== 'none';
                     loginForm.style.display = isLogin ? 'none' : 'flex';
@@ -162,56 +205,146 @@
                     toggleButton.textContent = isLogin ? 
                         'Already have an account? Sign in' : 
                         "Don't have an account? Sign up";
-                    errorMessage.style.display = 'none';
+                    clearMessages();
+                    // Clear all input fields
+                    document.querySelectorAll('input').forEach(input => {
+                        input.classList.remove('input-error');
+                    });
                 });
 
-                // Handle Login
+                                // Handle Login
                 loginForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    const email = document.getElementById('loginEmail').value;
-                    const password = document.getElementById('loginPassword').value;
+                    clearMessages();
+                    
+                    const emailInput = document.getElementById('loginEmail');
+                    const passwordInput = document.getElementById('loginPassword');
+                    const email = emailInput.value.trim();
+                    const password = passwordInput.value;
 
-                    try {
-                        // Await login so we only redirect after auth completes
-                        const user = await AuthService.login(email, password);
-                        if (user && user.uid) {
-                            window.location.href = 'index.html';
-                        } else {
-                            // Fallback: small delay to allow auth state to propagate then navigate
-                            setTimeout(() => { window.location.href = 'index.html'; }, 300);
-                        }
-                    } catch (error) {
-                        errorMessage.textContent = error.message || String(error);
-                        errorMessage.style.display = 'block';
-                    }
-                });
+                    // Clear previous error states
+                    emailInput.classList.remove('input-error');
+                    passwordInput.classList.remove('input-error');
 
-                // Handle Registration
-                registerForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const username = document.getElementById('registerUsername').value;
-                    const email = document.getElementById('registerEmail').value;
-                    const password = document.getElementById('registerPassword').value;
-                    const confirmPassword = document.getElementById('confirmPassword').value;
-
-                    if (password !== confirmPassword) {
-                        errorMessage.textContent = 'Passwords do not match';
-                        errorMessage.style.display = 'block';
+                    // Basic validation
+                    if (!email || !password) {
+                        showError('Please fill in all fields');
+                        if (!email) emailInput.classList.add('input-error');
+                        if (!password) passwordInput.classList.add('input-error');
                         return;
                     }
 
+                    // Show loading state
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Signing in...';
+                    submitBtn.classList.add('loading');
+
                     try {
-                        // Await register then login, and only redirect after success
-                        await AuthService.register(username, email, password);
                         const user = await AuthService.login(email, password);
-                        if (user && user.uid) {
+                        showSuccess('Login successful! Redirecting...');
+                        setTimeout(() => {
                             window.location.href = 'index.html';
-                        } else {
-                            setTimeout(() => { window.location.href = 'index.html'; }, 300);
-                        }
+                        }, 500);
                     } catch (error) {
-                        errorMessage.textContent = error.message || String(error);
-                        errorMessage.style.display = 'block';
+                        showError(error.message || 'Login failed. Please try again.');
+                        submitBtn.textContent = originalText;
+                        submitBtn.classList.remove('loading');
+                    }
+                });
+
+                                // Handle Registration
+                registerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    clearMessages();
+                    
+                    const usernameInput = document.getElementById('registerUsername');
+                    const emailInput = document.getElementById('registerEmail');
+                    const passwordInput = document.getElementById('registerPassword');
+                    const confirmPasswordInput = document.getElementById('confirmPassword');
+                    
+                    const username = usernameInput.value.trim();
+                    const email = emailInput.value.trim();
+                    const password = passwordInput.value;
+                    const confirmPassword = confirmPasswordInput.value;
+
+                    // Clear previous error states
+                    usernameInput.classList.remove('input-error');
+                    emailInput.classList.remove('input-error');
+                    passwordInput.classList.remove('input-error');
+                    confirmPasswordInput.classList.remove('input-error');
+
+                    // Validation
+                    if (!username || !email || !password || !confirmPassword) {
+                        showError('Please fill in all fields');
+                        if (!username) usernameInput.classList.add('input-error');
+                        if (!email) emailInput.classList.add('input-error');
+                        if (!password) passwordInput.classList.add('input-error');
+                        if (!confirmPassword) confirmPasswordInput.classList.add('input-error');
+                        return;
+                    }
+
+                    // Username validation (3-20 characters, alphanumeric)
+                    if (username.length < 3 || username.length > 20) {
+                        showError('Username must be between 3 and 20 characters');
+                        usernameInput.classList.add('input-error');
+                        return;
+                    }
+
+                    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                        showError('Username can only contain letters, numbers, and underscores');
+                        usernameInput.classList.add('input-error');
+                        return;
+                    }
+
+                    // Password validation
+                    if (password.length < 6) {
+                        showError('Password must be at least 6 characters long');
+                        passwordInput.classList.add('input-error');
+                        return;
+                    }
+
+                    if (password !== confirmPassword) {
+                        showError('Passwords do not match');
+                        passwordInput.classList.add('input-error');
+                        confirmPasswordInput.classList.add('input-error');
+                        return;
+                    }
+
+                    // Show loading state
+                    const submitBtn = registerForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Creating account...';
+                    submitBtn.classList.add('loading');
+
+                    try {
+                        // Register user
+                        await AuthService.register(username, email, password);
+                        showSuccess('Account created successfully! Signing you in...');
+                        
+                        // Auto-login after successful registration
+                        setTimeout(async () => {
+                            try {
+                                await AuthService.login(email, password);
+                                window.location.href = 'index.html';
+                            } catch (loginError) {
+                                showError('Account created but auto-login failed. Please sign in manually.');
+                                submitBtn.textContent = originalText;
+                                submitBtn.classList.remove('loading');
+                            }
+                        }, 1000);
+                    } catch (error) {
+                        showError(error.message || 'Registration failed. Please try again.');
+                        submitBtn.textContent = originalText;
+                        submitBtn.classList.remove('loading');
+                        
+                        // Highlight relevant fields based on error
+                        if (error.message.includes('email')) {
+                            emailInput.classList.add('input-error');
+                        }
+                        if (error.message.includes('username')) {
+                            usernameInput.classList.add('input-error');
+                        }
                     }
                 });
 

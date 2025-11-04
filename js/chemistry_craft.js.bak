@@ -1,5 +1,7 @@
-// Initial elements available to the user
-const initialElements = [
+// ChemistryCraft Module
+const ChemistryCraft = {
+    // Element definitions
+    elements: [
     // Nonmetals
     { symbol: 'H', name: 'Hydrogen', color: '#E6E6E6', type: 'nonmetal' },
     { symbol: 'C', name: 'Carbon', color: '#666666', type: 'nonmetal' },
@@ -141,7 +143,7 @@ const initialElements = [
     { symbol: 'Cn', name: 'Copernicium', color: '#CC9999', type: 'transition' }
 ];
 
-// Combination rules for elements (expanded with valid binary compounds, removed invalid ones like OH which isn't an element)
+// Combination rules for elements
 const combinationRules = {
     // Basic Combinations
     'H+O': { result: 'H2O', name: 'Water', description: 'The most essential compound for life' },
@@ -191,37 +193,183 @@ const combinationRules = {
     'Si+C': { result: 'SiC', name: 'Silicon Carbide', description: 'Known as carborundum, used as abrasive' }
 };
 
-// Debug mode state
-let debugMode = false;
+// Keep track of discovered compounds in memory (backup to localStorage)
+let discoveries = new Set();
+
+// Lightweight toast notification helper (non-blocking)
+function showToast(message, duration = 4000) {
+    try {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            // Create a container if it doesn't exist (fallback)
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Force reflow then show
+        window.getComputedStyle(toast).opacity;
+        toast.classList.add('show');
+
+        // Auto-dismiss
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => { try { container.removeChild(toast); } catch (e) {} }, 250);
+        }, duration);
+    } catch (e) {
+        // Fallback to alert if toast fails
+        try { alert(message); } catch (err) { console.log(message); }
+    }
+}
 
 // Initialize the interface
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize the chemistry lab interface
+function initChemistryLab() {
+    console.log('[ChemistryCraft] Page loaded, initializing...');
+
+    // Initialize core UI elements
     const elementGrid = document.getElementById('elementGrid');
     const combineBtn = document.getElementById('combineBtn');
-    
-    // Load saved discoveries for the current user
-    loadSavedDiscoveries();
-    
-    // Show debug panel for admins
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user && user.role === 'admin') {
-        document.querySelector('.debug-panel').style.display = 'block';
-    }
     const resultArea = document.getElementById('resultArea');
     const discoveriesList = document.getElementById('discoveriesList');
     const searchInput = document.getElementById('elementSearch');
 
-    // Populate initial elements
-    function populateElements(elements) {
-        elementGrid.innerHTML = ''; // Clear existing elements
-        elements.forEach(element => {
-            const elementDiv = createElementDiv(element);
-            elementGrid.appendChild(elementDiv);
-        });
+    // Verify required elements exist
+    if (!elementGrid || !combineBtn || !resultArea || !discoveriesList || !searchInput) {
+        console.error('[ChemistryCraft] Missing required UI elements');
+        return false;
     }
 
-    // Initial population
-    populateElements(initialElements);
+    // Initialize core elements before anything else
+    function initializeElements() {
+        // Initial population with validation
+        console.log('[ChemistryCraft] Starting initial element population');
+        if (initialElements && Array.isArray(initialElements)) {
+            populateElements(initialElements);
+            return true;
+        } else {
+            console.error('[ChemistryCraft] initialElements is not properly defined:', initialElements);
+            elementGrid.innerHTML = '<div class="element error">Error: Elements not available</div>';
+            return false;
+        }
+    }
+
+    // Try to initialize elements immediately
+    const elementsInitialized = initializeElements();
+    if (!elementsInitialized) {
+        console.error('[ChemistryCraft] Failed to initialize elements grid');
+        return false;
+    }
+
+    return true;
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const initialized = initChemistryLab();
+    if (!initialized) {
+        console.error('[ChemistryCraft] Failed to initialize chemistry lab');
+        return;
+    }
+    // We defer this until an authenticated user is available because Firebase auth
+    // initializes asynchronously and AuthService.getCurrentUser() may be null at DOMContentLoaded.
+    function handleUserInit(currentUser) {
+        if (!currentUser) return;
+
+        // CLEAN UP OLD CORRUPTED DISCOVERIES (like "Mo Mo")
+        try {
+            const userData = DiscoveryService.getUserDataLocal(currentUser.username);
+            if (userData && userData.discoveries) {
+                // Remove invalid discoveries
+                userData.discoveries = userData.discoveries.filter(d => {
+                    return d && d.symbol && d.name && d.symbol.length <= 10;
+                });
+                DiscoveryService.saveUserData(currentUser.username, userData);
+                console.log('[ChemistryCraft] Cleaned up corrupted discoveries');
+            }
+        } catch (e) {
+            console.warn('[ChemistryCraft] Error during discovery cleanup', e);
+        }
+
+        // Show debug panels only for admin users
+        try {
+            const debugPanels = document.getElementById('debugPanels');
+            if (debugPanels) {
+                if (currentUser.isAdmin === true) {
+                    console.log('[ChemistryCraft] Admin user detected, showing debug panels');
+                    debugPanels.style.display = 'block';
+                } else {
+                    console.log('[ChemistryCraft] Non-admin user, hiding debug panels');
+                    debugPanels.style.display = 'none';
+                }
+            }
+        } catch (e) {
+            console.warn('[ChemistryCraft] Error updating debug panels', e);
+        }
+        // Migrate any discoveries queued while the user was anonymous / not signed in
+        try { migratePendingDiscoveries(currentUser); } catch (e) { console.warn('[ChemistryCraft] migratePendingDiscoveries failed', e); }
+    }
+
+    const elementGrid = document.getElementById('elementGrid');
+    const combineBtn = document.getElementById('combineBtn');
+    const resultArea = document.getElementById('resultArea');
+    const discoveriesList = document.getElementById('discoveriesList');
+    const searchInput = document.getElementById('elementSearch');
+
+function populateElements(elements) {
+    const elementGrid = document.getElementById('elementGrid');
+    if (!elementGrid) {
+        console.error('[ChemistryCraft] Element grid not found in DOM');
+        return false;
+    }
+
+    // Validate elements array
+    if (!Array.isArray(elements) || elements.length === 0) {
+        console.error('[ChemistryCraft] Invalid or empty elements array:', elements);
+        return false;
+    }
+
+    try {
+        console.log('[ChemistryCraft] Populating', elements.length, 'elements');
+        elementGrid.innerHTML = ''; // Clear existing elements
+        
+        elements.forEach(element => {
+            if (!element || !element.symbol || !element.name) {
+                console.warn('[ChemistryCraft] Skipping invalid element:', element);
+                return;
+            }
+            const elementDiv = createElementDiv(element);
+            if (elementDiv) {
+                elementGrid.appendChild(elementDiv);
+            }
+        });
+
+        console.log('[ChemistryCraft] Successfully populated elements grid');
+        return true;
+    } catch (error) {
+        console.error('[ChemistryCraft] Error populating elements:', error);
+        elementGrid.innerHTML = '<div class="element error">Error loading elements. Please refresh.</div>';
+        return false;
+    }
+        } catch (err) {
+            console.error('[ChemistryCraft] Error populating elements:', err);
+            // Try to recover by showing error state
+            elementGrid.innerHTML = '<div class="element error">Error loading elements. Please refresh.</div>';
+        }
+    }
+
+    // Initial population with validation
+    console.log('[ChemistryCraft] Starting initial element population');
+    if (initialElements && Array.isArray(initialElements)) {
+        populateElements(initialElements);
+    } else {
+        console.error('[ChemistryCraft] initialElements is not properly defined:', initialElements);
+    }
 
     // Search functionality
     searchInput.addEventListener('input', (e) => {
@@ -236,24 +384,149 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle combining elements
     combineBtn.addEventListener('click', combineElements);
+    
+    // LOAD SAVED DISCOVERIES — defer until auth is ready so we don't skip loading when
+    // Firebase restores an auth session asynchronously.
+    function ensureAuthThenLoad() {
+        const currentUser = AuthService.getCurrentUser();
+        if (currentUser) {
+            // run user init and load discoveries immediately
+            handleUserInit(currentUser);
+            loadSavedDiscoveries();
+            return;
+        }
+
+        // If firebase auth is available, wait for onAuthStateChanged
+        function attachAuthListener() {
+            if (window.firebase && firebase.auth) {
+                const unsub = firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        // AuthService should have updated its snapshot; use that
+                        const u = AuthService.getCurrentUser() || { uid: user.uid, email: user.email };
+                        handleUserInit(u);
+                        loadSavedDiscoveries();
+                        try { unsub(); } catch (e) {}
+                    }
+                });
+                return true;
+            }
+            return false;
+        }
+
+        if (!attachAuthListener()) {
+            // Wait for firebaseReady then attach
+            window.addEventListener('firebaseReady', () => {
+                attachAuthListener();
+            }, { once: true });
+        }
+    }
+
+    ensureAuthThenLoad();
+
+    // Render pending discoveries (if any) into the UI so users can see queued items
+    function renderPendingDiscoveries() {
+        try {
+            const pendingKey = 'chemulab_pending_discoveries';
+            const raw = localStorage.getItem(pendingKey);
+            const pending = raw ? JSON.parse(raw) : [];
+            const pendingContainer = document.getElementById('pendingDiscoveriesList');
+            if (!pendingContainer) return;
+            pendingContainer.innerHTML = '';
+            if (!pending || pending.length === 0) {
+                pendingContainer.innerHTML = '<div style="color:#666; font-size:0.9em;">No pending discoveries</div>';
+                return;
+            }
+            pending.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'discovery-item pending';
+                item.innerHTML = `<span><strong>${d.symbol}</strong> - ${d.name} <small style="color:#666; margin-left:8px;">(queued)</small></span>`;
+                pendingContainer.appendChild(item);
+            });
+        } catch (e) {
+            console.warn('[ChemistryCraft] renderPendingDiscoveries failed', e);
+        }
+    }
+
+    // Initial render of pending discoveries
+    renderPendingDiscoveries();
+    
+    // UPDATE DEBUG PANEL
+    updateDebugPanel();
 });
 
 function createElementDiv(element) {
+    try {
+        // Validate element data
+        if (!element) {
+            console.error('[ChemistryCraft] Cannot create element div: no element data provided');
+            return createErrorElement('Invalid element data');
+        }
+
+        if (!element.symbol || !element.name) {
+            console.error('[ChemistryCraft] Invalid element data:', element);
+            return createErrorElement('Missing element properties');
+        }
+
+        // Create the element div with proper error handling
+        const div = document.createElement('div');
+        div.className = 'element';
+        div.draggable = true;
+
+        // Set background color with fallback
+        div.style.backgroundColor = element.color || '#cccccc';
+
+        // Sanitize and display element data
+        const safeSymbol = sanitizeText(element.symbol);
+        const safeName = sanitizeText(element.name);
+
+        div.innerHTML = `
+            <div class="element-symbol">${safeSymbol}</div>
+            <div class="element-name">${safeName}</div>
+        `;
+
+        // Add drag event listeners with error handling
+        div.addEventListener('dragstart', (e) => {
+            try {
+                e.dataTransfer.setData('text/plain', JSON.stringify(element));
+                div.classList.add('dragging');
+            } catch (err) {
+                console.error('[ChemistryCraft] Error starting drag:', err);
+            }
+        });
+
+        div.addEventListener('dragend', () => {
+            try {
+                div.classList.remove('dragging');
+            } catch (err) {
+                console.error('[ChemistryCraft] Error ending drag:', err);
+            }
+        });
+
+        return div;
+    } catch (err) {
+        console.error('[ChemistryCraft] Error creating element div:', err);
+        return createErrorElement('Error creating element');
+    }
+}
+
+// Helper function to create an error element div
+function createErrorElement(message) {
     const div = document.createElement('div');
-    div.className = 'element';
-    div.draggable = true;
-    div.style.backgroundColor = element.color;
-    div.innerHTML = `
-        <div class="element-symbol">${element.symbol}</div>
-        <div class="element-name">${element.name}</div>
-    `;
-
-    // Add drag event listeners
-    div.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', JSON.stringify(element));
-    });
-
+    div.className = 'element error';
+    div.innerHTML = `<div class="element-error">${message}</div>`;
     return div;
+}
+
+// Helper function to sanitize text content
+function sanitizeText(text) {
+    if (!text) return '';
+    return text
+        .toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // Drag and drop handlers
@@ -294,34 +567,25 @@ function combineElements() {
     const element1 = slot1.querySelector('.element-symbol').textContent;
     const element2 = slot2.querySelector('.element-symbol').textContent;
     
+    console.log('[ChemistryCraft] Attempting combination:', element1, '+', element2);
+    
     // Try both combinations (order doesn't matter)
     const combination = combinationRules[`${element1}+${element2}`] || combinationRules[`${element2}+${element1}`];
     
     if (combination) {
         displayResult(combination);
+        console.log('[ChemistryCraft] Successful combination:', combination.result);
         
-        // Get current user
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        if (user) {
-            const discovery = {
-                id: combination.result,
-                name: combination.name,
-                formula: combination.result,
-                description: combination.description,
-                elements: [element1, element2],
-                completed: true
-            };
-            
-            // Add discovery using DiscoveryService
-            DiscoveryService.addDiscovery(user.username, discovery);
+        // Check if it's a new discovery
+        if (!discoveries.has(combination.result)) {
+            console.log('[ChemistryCraft] New discovery found:', combination.result);
+            discoveries.add(combination.result);
             addToDiscoveries(combination);
-            
-            // Update debug info if in debug mode
-            if (debugMode) {
-                updateDebugInfo();
-            }
+        } else {
+            console.log('[ChemistryCraft] Already discovered:', combination.result);
         }
     } else {
+        console.log('[ChemistryCraft] No valid combination for:', element1, '+', element2);
         displayNoResult();
     }
 }
@@ -354,8 +618,33 @@ function addToDiscoveries(discovery) {
     // 1. CHECK IF USER IS LOGGED IN
     const currentUser = AuthService.getCurrentUser();
     if (!currentUser) {
-        console.error('[ChemistryCraft] ERROR: No user logged in, cannot save discovery');
-        alert('Please log in to save discoveries');
+        // If the auth state isn't ready or the user isn't signed in yet, queue the discovery locally
+        // so the user doesn't lose progress. We'll migrate these when a user signs in.
+        try {
+            const pendingKey = 'chemulab_pending_discoveries';
+            const raw = localStorage.getItem(pendingKey);
+            const pending = raw ? JSON.parse(raw) : [];
+            // Avoid duplicates in the pending queue
+            if (!pending.find(p => p.id === discovery.result)) {
+                pending.push({
+                    id: discovery.result,
+                    symbol: discovery.result,
+                    name: discovery.name,
+                    description: discovery.description,
+                    timestamp: Date.now()
+                });
+                localStorage.setItem(pendingKey, JSON.stringify(pending));
+                console.log('[ChemistryCraft] Discovery queued locally until login:', discovery.result);
+                    try { renderPendingDiscoveries(); } catch (e) {}
+            } else {
+                console.log('[ChemistryCraft] Discovery already queued locally:', discovery.result);
+            }
+        } catch (e) {
+            console.error('[ChemistryCraft] Failed to queue discovery locally', e);
+        }
+
+    // Inform the user with a non-blocking toast — allow them to continue combining
+    try { showToast('Discovery saved locally. Sign in to sync it to your account.'); } catch (e) { try { alert('Discovery saved locally. Sign in to sync it to your account.'); } catch (e) {} }
         return;
     }
     console.log('[ChemistryCraft] Current user:', currentUser.username);
@@ -401,71 +690,406 @@ function addToDiscoveries(discovery) {
     updateDebugPanel();
 }
 
-// Load saved discoveries from DiscoveryService
-function loadSavedDiscoveries() {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user) {
-        const discoveries = DiscoveryService.getDiscoveries(user.username);
-        const discoveriesList = document.getElementById('discoveriesList');
-        discoveriesList.innerHTML = ''; // Clear current list
-        
-        discoveries.forEach(discovery => {
-            const discoveryItem = document.createElement('div');
-            discoveryItem.className = 'discovery-item';
-            discoveryItem.innerHTML = `
-                <span>${discovery.formula} - ${discovery.name}</span>
-            `;
-            discoveriesList.appendChild(discoveryItem);
+// Migrate any pending (locally queued) discoveries into the signed-in user's data
+function migratePendingDiscoveries(currentUser) {
+    if (!currentUser) return;
+    try {
+        const pendingKey = 'chemulab_pending_discoveries';
+        const raw = localStorage.getItem(pendingKey);
+        if (!raw) return;
+        const pending = JSON.parse(raw);
+        if (!Array.isArray(pending) || pending.length === 0) return;
+
+        console.log('[ChemistryCraft] Migrating', pending.length, 'pending discoveries for', currentUser.username);
+        pending.forEach(d => {
+            try {
+                const discoveryData = {
+                    id: d.id,
+                    symbol: d.symbol,
+                    name: d.name,
+                    completed: true,
+                    type: 'compound',
+                    description: d.description
+                };
+                DiscoveryService.addDiscovery(currentUser.username, discoveryData);
+                // Also add to in-memory set/UI
+                discoveries.add(discoveryData.symbol);
+                const discoveriesList = document.getElementById('discoveriesList');
+                if (discoveriesList) {
+                    const discoveryItem = document.createElement('div');
+                    discoveryItem.className = 'discovery-item';
+                    discoveryItem.innerHTML = `<span><strong>${discoveryData.symbol}</strong> - ${discoveryData.name}</span>`;
+                    discoveriesList.appendChild(discoveryItem);
+                }
+            } catch (err) {
+                console.warn('[ChemistryCraft] Failed to migrate discovery', d, err);
+            }
         });
 
-        // Update debug info if in debug mode
-        if (debugMode) {
-            updateDebugInfo();
+        // Remove pending key after migration
+        localStorage.removeItem(pendingKey);
+        console.log('[ChemistryCraft] Pending discoveries migrated successfully');
+    try { renderPendingDiscoveries(); } catch (e) {}
+    } catch (e) {
+        console.error('[ChemistryCraft] Error migrating pending discoveries', e);
+    }
+}
+
+// Load user's saved discoveries when page loads
+async function loadSavedDiscoveries() {
+    console.log('[ChemistryCraft] Loading saved discoveries...');
+    
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) {
+        console.log('[ChemistryCraft] No user logged in, skipping discovery load');
+        return;
+    }
+
+    console.log('[ChemistryCraft] Loading discoveries for user:', currentUser.username);
+    
+    try {
+        // Wait for Firebase to be ready
+        await new Promise((resolve) => {
+            if (window.firebase && window.firebase.apps && window.firebase.apps.length) {
+                resolve();
+            } else {
+                window.addEventListener('firebaseReady', () => resolve(), { once: true });
+            }
+        });
+
+        // Try to load from Firebase first
+        const fbData = await DiscoveryService.firebaseGetUserData(currentUser.uid);
+        if (fbData && fbData.discoveries) {
+            console.log('[ChemistryCraft] Found', fbData.discoveries.length, 'discoveries in Firebase');
+            // Update local cache with Firebase data
+            DiscoveryService.saveUserDataLocal(currentUser.username, fbData);
+            return renderDiscoveries(fbData.discoveries);
+        }
+
+        // Fallback to local data if Firebase data not found
+        const userData = DiscoveryService.getUserDataLocal(currentUser.username);
+        if (!userData || !userData.discoveries) {
+            console.log('[ChemistryCraft] No saved discoveries found locally or in Firebase');
+            return;
+        }
+        console.log('[ChemistryCraft] Found', userData.discoveries.length, 'discoveries in local storage');
+    } catch (err) {
+        console.error('[ChemistryCraft] Error loading discoveries:', err);
+        return;
+    }
+
+    console.log('[ChemistryCraft] Found', userData.discoveries.length, 'saved discoveries');
+    return renderDiscoveries(userData.discoveries);
+}
+
+// Render the discoveries list in the UI
+function renderDiscoveries(discoveries) {
+    if (!Array.isArray(discoveries)) {
+        console.error('[ChemistryCraft] Invalid discoveries data:', discoveries);
+        return;
+    }
+
+    console.log('[ChemistryCraft] Rendering', discoveries.length, 'discoveries');
+    const discoveriesList = document.getElementById('discoveriesList');
+    if (!discoveriesList) {
+        console.error('[ChemistryCraft] ERROR: discoveriesList element not found');
+        return;
+    }
+
+    // Clear existing list
+    discoveriesList.innerHTML = '';
+
+    // Sort discoveries by most recent first
+    discoveries.sort((a, b) => {
+        const dateA = a.lastUpdated || a.dateDiscovered || '0';
+        const dateB = b.lastUpdated || b.dateDiscovered || '0';
+        return dateB.localeCompare(dateA);
+    });
+
+    // Create and append discovery items
+    discoveries.forEach(discovery => {
+        const item = document.createElement('div');
+        item.className = 'discovery-item' + (discovery.completed ? ' completed' : '');
+        
+        const symbol = document.createElement('div');
+        symbol.className = 'discovery-symbol';
+        symbol.textContent = discovery.symbol || discovery.id;
+        item.appendChild(symbol);
+
+        const info = document.createElement('div');
+        info.className = 'discovery-info';
+        
+        const name = document.createElement('div');
+        name.className = 'discovery-name';
+        name.textContent = discovery.name || discovery.id;
+        info.appendChild(name);
+
+        if (discovery.description) {
+            const desc = document.createElement('div');
+            desc.className = 'discovery-description';
+            desc.textContent = discovery.description;
+            info.appendChild(desc);
+        }
+
+        const date = document.createElement('div');
+        date.className = 'discovery-date';
+        const discoveryDate = discovery.lastUpdated || discovery.dateDiscovered;
+        date.textContent = discoveryDate ? new Date(discoveryDate).toLocaleDateString() : 'Unknown date';
+        info.appendChild(date);
+
+        item.appendChild(info);
+        discoveriesList.appendChild(item);
+    });
+
+    console.log('[ChemistryCraft] Rendered discoveries list');
+        return;
+    }
+
+    // Clear the list first
+    discoveriesList.innerHTML = '';
+
+    // Add each discovery to the UI
+    userData.discoveries.forEach(discovery => {
+        // Add to the discoveries Set
+        discoveries.add(discovery.symbol);
+        
+        // Create UI element
+        const discoveryItem = document.createElement('div');
+        discoveryItem.className = 'discovery-item';
+        discoveryItem.innerHTML = `
+            <span><strong>${discovery.symbol}</strong> - ${discovery.name}</span>
+        `;
+        discoveriesList.appendChild(discoveryItem);
+        
+        console.log('[ChemistryCraft] Loaded discovery:', discovery.symbol, '-', discovery.name);
+    });
+
+    console.log('[ChemistryCraft] ✓ All discoveries loaded successfully');
+}
+
+// Debug panel state
+let isDebugExpanded = false;
+let selectedUsername = null;
+
+// Toggle debug panel expansion
+function toggleDebugExpand() {
+    const expandedSection = document.getElementById('debugExpanded');
+    const toggleButton = document.querySelector('#debugPanels button');
+    isDebugExpanded = !isDebugExpanded;
+    expandedSection.style.display = isDebugExpanded ? 'block' : 'none';
+    toggleButton.textContent = isDebugExpanded ? '▲' : '▼';
+}
+
+// Refresh the list of users in the debug panel
+async function refreshUserList() {
+    const select = document.getElementById('debugUserSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Loading users...</option>';
+    
+    try {
+        // Get users from AuthService
+        const users = AuthService.getAllUsers();
+        if (!users || users.length === 0) {
+            select.innerHTML = '<option value="">No users found</option>';
+            return;
+        }
+
+        // Update select options
+        select.innerHTML = '<option value="">Select user...</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.username;
+            option.textContent = user.username + (user.isAdmin ? ' (Admin)' : '');
+            select.appendChild(option);
+        });
+
+        // Restore selection if any
+        if (selectedUsername) {
+            select.value = selectedUsername;
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+        select.innerHTML = '<option value="">Error loading users</option>';
+    }
+}
+
+// Load and display user data
+function loadUserData(username) {
+    selectedUsername = username;
+    const dataDisplay = document.getElementById('debugUserData');
+    if (!dataDisplay) return;
+    
+    if (!username) {
+        dataDisplay.textContent = 'Select a user to view data';
+        return;
+    }
+
+    try {
+        const userData = AuthService.getAllUsers().find(u => u.username === username);
+        if (!userData) {
+            dataDisplay.textContent = 'User not found';
+            return;
+        }
+
+    const userDiscoveries = DiscoveryService.getUserDataLocal(username);
+        
+        // Format user data for display
+        const displayData = {
+            Username: userData.username,
+            'Admin Status': userData.isAdmin ? 'Yes' : 'No',
+            'Registration Date': new Date(userData.registrationDate || Date.now()).toLocaleString(),
+            'Discoveries': userDiscoveries?.discoveries?.length || 0
+        };
+
+        dataDisplay.innerHTML = Object.entries(displayData)
+            .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
+            .join('');
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        dataDisplay.textContent = 'Error loading user data';
+    }
+}
+
+// Debug actions
+function debugClearDiscoveries() {
+    if (!selectedUsername) {
+        alert('Please select a user first');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to clear all discoveries for ${selectedUsername}?`)) {
+        try {
+            let userData = DiscoveryService.getUserDataLocal(selectedUsername);
+            if (userData) {
+                userData.discoveries = [];
+                DiscoveryService.saveUserData(selectedUsername, userData);
+                loadUserData(selectedUsername); // Refresh display
+                alert('Discoveries cleared successfully');
+            }
+        } catch (error) {
+            console.error('Error clearing discoveries:', error);
+            alert('Error clearing discoveries');
         }
     }
 }
 
-// Debug panel functions
-function toggleDebug() {
-    debugMode = !debugMode;
-    const debugInfo = document.getElementById('debugInfo');
-    debugInfo.style.display = debugMode ? 'block' : 'none';
-    if (debugMode) {
-        updateDebugInfo();
+function debugResetProgress() {
+    if (!selectedUsername) {
+        alert('Please select a user first');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to reset all progress for ${selectedUsername}?`)) {
+        try {
+            // Clear discoveries
+            let userData = DiscoveryService.getUserDataLocal(selectedUsername);
+            if (userData) {
+                userData.discoveries = [];
+                userData.lastActive = Date.now();
+                DiscoveryService.saveUserData(selectedUsername, userData);
+            }
+            loadUserData(selectedUsername); // Refresh display
+            alert('Progress reset successfully');
+        } catch (error) {
+            console.error('Error resetting progress:', error);
+            alert('Error resetting progress');
+        }
     }
 }
 
-function updateDebugInfo() {
-    const debugInfo = document.getElementById('debugInfo');
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user) {
-        const userData = DiscoveryService.getUserData(user.username);
-        const progress = userData.progress;
-        debugInfo.innerHTML = `
-            <pre>
-User: ${user.username}
-Total Discoveries: ${progress.totalDiscoveries}
-Completed Discoveries: ${progress.completedDiscoveries}
-Progress: ${progress.progressPercentage.toFixed(2)}%
+// Run migration for selected user (debug helper)
+function debugRunMigration() {
+    const username = selectedUsername || (AuthService.getCurrentUser() && AuthService.getCurrentUser().username);
+    if (!username) {
+        alert('Please select a user or sign in first');
+        return;
+    }
 
-Milestones:
-- Beginner (10%): ${progress.milestones.beginner ? '✓' : '✗'}
-- Intermediate (50%): ${progress.milestones.intermediate ? '✓' : '✗'}
-- Advanced (75%): ${progress.milestones.advanced ? '✓' : '✗'}
-- Master (100%): ${progress.milestones.master ? '✓' : '✗'}
-
-Last Login: ${new Date(userData.credentials.lastLogin).toLocaleString()}
-            </pre>
-        `;
+    try {
+        const res = DiscoveryService.migrateLegacy(username);
+        console.log('[ChemistryCraft] Migration result:', res);
+        let msg = `Migration for ${username}:\n`;
+        msg += `Found legacy: ${res.foundLegacy}\n`;
+        if (res.foundLegacy) {
+            msg += `Legacy key: ${res.legacyKey}\n`;
+            msg += `Migrated discoveries: ${res.migratedCount}\n`;
+        }
+        if (res.error) msg += `Error: ${res.error}\n`;
+        alert(msg);
+        // Refresh UI counts
+        updateDebugPanel();
+        // Also reload discoveries in UI if we're on the Your Lab page
+        if (window.location.pathname.endsWith('your_lab.html')) {
+            loadSavedDiscoveries();
+        }
+    } catch (err) {
+        console.error('Migration failed', err);
+        alert('Migration failed — see console for details');
     }
 }
 
-function clearAllDiscoveries() {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user && confirm('Are you sure you want to clear all discoveries? This cannot be undone.')) {
-        // Reset user data
-        DiscoveryService.initializeUserData(user.username);
-        // Reload discoveries list
-        loadSavedDiscoveries();
+function debugDeleteUser() {
+    if (!selectedUsername) {
+        alert('Please select a user first');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to DELETE user ${selectedUsername}? This cannot be undone!`)) {
+        try {
+            // Get current users and remove the selected one (update in-memory users; do NOT persist credentials)
+            const users = AuthService.getAllUsers().filter(u => u.username !== selectedUsername);
+            // Update the AuthService in-memory users list instead of saving to localStorage
+            AuthService._users = users;
+            // Remove user's discoveries
+            localStorage.removeItem(AuthService.STORAGE_KEYS.USER_PROGRESS + selectedUsername);
+            selectedUsername = null;
+            refreshUserList();
+            document.getElementById('debugUserData').textContent = 'Select a user to view data';
+            alert('User deleted successfully');
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Error deleting user');
+        }
     }
 }
+
+// Debug panel to track user and discoveries
+function updateDebugPanel() {
+    const user = AuthService.getCurrentUser();
+    const debugUser = document.getElementById('debugUser');
+    const debugMemoryDiscoveries = document.getElementById('debugMemoryDiscoveries');
+    const debugStorageDiscoveries = document.getElementById('debugStorageDiscoveries');
+    
+    if (debugUser) {
+        debugUser.textContent = user ? user.username : '(none)';
+    }
+    
+    if (debugMemoryDiscoveries) {
+        debugMemoryDiscoveries.textContent = discoveries.size;
+    }
+    
+    if (debugStorageDiscoveries && user) {
+    const userData = DiscoveryService.getUserDataLocal(user.username);
+        if (userData && userData.discoveries) {
+            debugStorageDiscoveries.textContent = userData.discoveries.length;
+        } else {
+            debugStorageDiscoveries.textContent = '0';
+        }
+    }
+}
+
+// Update debug panel every second to keep it fresh
+setInterval(updateDebugPanel, 1000);
+
+// Initialize debug panel when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    const user = AuthService.getCurrentUser();
+    if (user?.isAdmin) {
+        const debugPanel = document.getElementById('debugPanels');
+        if (debugPanel) {
+            debugPanel.style.display = 'block';
+            refreshUserList();
+        }
+    }
+});

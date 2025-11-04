@@ -14,28 +14,49 @@ const DiscoveryService = {
 
     async ensureFirebase() {
         try {
-            if (!window.FIREBASE_CONFIG) return false;
-            if (window.firebase && window.firebase.apps && window.firebase.apps.length) {
-                if (!this._firebaseDb) this._firebaseDb = window.firebase.firestore();
-                return true;
+            console.log('Checking Firebase initialization status...');
+            if (!window.FIREBASE_CONFIG) {
+                console.error('Firebase config not found in window.FIREBASE_CONFIG');
+                return false;
+            }
+            
+            // Wait for Firebase to be fully initialized
+            if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) {
+                console.log('Waiting for Firebase initialization...');
+                await new Promise((resolve) => {
+                    const maxWait = setTimeout(() => resolve(false), 5000); // 5 second timeout
+                    window.addEventListener('firebaseReady', () => {
+                        clearTimeout(maxWait);
+                        resolve(true);
+                    }, { once: true });
+                });
+            }
+            
+            if (!window.firebase || !window.firebase.apps || !window.firebase.apps.length) {
+                console.error('Firebase failed to initialize in time');
+                return false;
             }
 
-            // Firebase SDK is now loaded via HTML script tags
-
-            window.firebase.initializeApp(window.FIREBASE_CONFIG);
-
-            // Try anonymous sign-in if auth is available and no user is signed-in
-            try {
-                if (window.firebase.auth && !window.firebase.auth().currentUser) {
-                    // enable anonymous if the project allows it
-                    await window.firebase.auth().signInAnonymously();
-                }
-            } catch (e) {
-                // Non-fatal: auth may be disabled or not allowed; continue without auth
-                console.warn('Firebase anonymous sign-in failed or not allowed', e);
+            // Ensure we have an authenticated user (even if anonymous)
+            if (window.firebase.auth && !window.firebase.auth().currentUser) {
+                console.log('Waiting for auth state...');
+                await new Promise((resolve) => {
+                    const unsubscribe = window.firebase.auth().onAuthStateChanged((user) => {
+                        unsubscribe();
+                        if (user) {
+                            console.log('User authenticated:', user.uid, user.isAnonymous ? '(anonymous)' : '');
+                        }
+                        resolve(true);
+                    });
+                });
             }
 
-            this._firebaseDb = window.firebase.firestore();
+            // Initialize Firestore if needed
+            if (!this._firebaseDb) {
+                console.log('Setting up Firestore instance...');
+                this._firebaseDb = window.firebase.firestore();
+            }
+
             return true;
         } catch (err) {
             console.warn('Firebase init failed', err);
@@ -44,58 +65,142 @@ const DiscoveryService = {
     },
 
     async firebaseGetUserData(userId) {
-        if (!await this.ensureFirebase()) return null;
+        console.log('Fetching user data from Firebase for:', userId);
+        if (!userId) {
+            console.error('Cannot fetch data - no userId provided');
+            return null;
+        }
+
+        if (!await this.ensureFirebase()) {
+            console.warn('Firebase not ready, cannot fetch user data');
+            return null;
+        }
+
         try {
+            console.log('Firebase ready, fetching document...');
             const doc = await this._firebaseDb.collection('progress').doc(userId).get();
-            if (!doc.exists) return null;
-            return doc.data();
+            
+            if (!doc.exists) {
+                console.log('No data found in Firebase for user:', userId);
+                return null;
+            }
+
+            const data = doc.data();
+            console.log('Successfully retrieved data from Firebase:', {
+                userId,
+                discoveryCount: data.discoveries ? data.discoveries.length : 0,
+                hasProgress: !!data.progress
+            });
+            return data;
         } catch (err) {
-            console.warn('firebaseGetUserData error', err);
+            console.error('firebaseGetUserData error:', err);
+            console.error('Error details:', { code: err.code, message: err.message });
             return null;
         }
     },
 
     async firebaseSaveUserData(userId, userData) {
-        if (!await this.ensureFirebase()) return false;
+        console.log('Attempting to save user data to Firebase:', { userId, userData });
+        
+        // Validate inputs
+        if (!userId) {
+            console.error('Cannot save to Firebase - no userId provided');
+            return false;
+        }
+        if (!userData) {
+            console.error('Cannot save to Firebase - no userData provided');
+            return false;
+        }
+
+        // Ensure Firebase is ready
+        if (!await this.ensureFirebase()) {
+            console.warn('Firebase not initialized, cannot save user data');
+            return false;
+        }
+
         try {
-            await this._firebaseDb.collection('progress').doc(userId).set(userData);
+            // Ensure we have a current user
+            const currentUser = window.firebase.auth().currentUser;
+            if (!currentUser) {
+                console.warn('No authenticated user found when trying to save');
+                return false;
+            }
+
+            // Ensure the data is associated with the current user
+            const dataToSave = {
+                ...userData,
+                _lastModified: new Date().toISOString(),
+                _userId: currentUser.uid,
+                _isAnonymous: currentUser.isAnonymous,
+            };
+
+            console.log('Firebase initialized, attempting to save data...', {
+                userId: currentUser.uid,
+                isAnonymous: currentUser.isAnonymous
+            });
+            
+            await this._firebaseDb.collection('progress').doc(userId).set(dataToSave);
+            console.log('Successfully saved user data to Firebase');
             return true;
         } catch (err) {
-            console.warn('firebaseSaveUserData error', err);
+            console.error('firebaseSaveUserData error:', err);
+            console.error('Error details:', { code: err.code, message: err.message });
             return false;
         }
     },
 
     async syncUserData(userId) {
-        if (!userId) return false;
+        console.log('Starting sync for user:', userId);
+        if (!userId) {
+            console.error('Cannot sync - no userId provided');
+            return false;
+        }
         
         try {
             // Get local data
+            console.log('Fetching local data...');
             const localData = this.getUserDataLocal(userId);
+            if (localData) {
+                console.log('Found local data with', localData.discoveries?.length || 0, 'discoveries');
+            }
             
             // Get remote data
+            console.log('Fetching remote data...');
             const remoteData = await this.firebaseGetUserData(userId);
+            if (remoteData) {
+                console.log('Found remote data with', remoteData.discoveries?.length || 0, 'discoveries');
+            }
             
             if (!remoteData) {
-                // No remote data exists, push local data to Firebase
+                console.log('No remote data found');
+                // No remote data exists, push local data to Firebase if we have it
                 if (localData) {
+                    console.log('Pushing local data to Firebase...');
                     await this.firebaseSaveUserData(userId, localData);
                     this.dispatchSyncEvent('success', 'Progress saved to cloud');
+                    console.log('Local data successfully pushed to Firebase');
                 }
                 return true;
             }
             
             // Merge data (prefer remote progress if it's higher)
+            console.log('Merging local and remote data...');
             const mergedData = this.mergeUserData(localData, remoteData);
+            console.log('Merged data has', mergedData.discoveries?.length || 0, 'discoveries');
             
             // Save merged data both locally and remotely
+            console.log('Saving merged data locally...');
             this.saveUserDataLocal(userId, mergedData);
+            
+            console.log('Saving merged data to Firebase...');
             await this.firebaseSaveUserData(userId, mergedData);
             
             this.dispatchSyncEvent('success', 'Progress synced successfully');
+            console.log('Sync completed successfully');
             return true;
         } catch (err) {
             console.error('Sync failed:', err);
+            console.error('Error details:', { code: err.code, message: err.message });
             this.dispatchSyncEvent('error', 'Sync failed. Will try again later');
             return false;
         }
@@ -132,13 +237,28 @@ const DiscoveryService = {
     // Resolve the effective storage/user id to use for Firestore and localStorage.
     // If a Firebase user is signed in, prefer the Firebase UID; otherwise use the provided username.
     resolveUserId(username) {
+        console.log('Resolving user ID for username:', username);
         try {
-            if (window.firebase && window.firebase.auth && window.firebase.auth().currentUser) {
-                return window.firebase.auth().currentUser.uid;
+            if (!username) {
+                console.warn('No username provided to resolveUserId');
+                return null;
+            }
+
+            if (window.firebase && window.firebase.auth) {
+                const currentUser = window.firebase.auth().currentUser;
+                if (currentUser) {
+                    console.log('Using Firebase UID:', currentUser.uid);
+                    return currentUser.uid;
+                } else {
+                    console.log('No Firebase user signed in, falling back to username');
+                }
+            } else {
+                console.log('Firebase auth not available, falling back to username');
             }
         } catch (e) {
-            // ignore
+            console.warn('Error in resolveUserId:', e);
         }
+        console.log('Using username as ID:', username);
         return username;
     },
 
@@ -150,15 +270,28 @@ const DiscoveryService = {
     migrateLegacy(username) { const result = { username, foundLegacy: false, legacyKey: null, legacyRaw: null, migrated: false, migratedCount: 0 }; try { if (typeof AuthService !== 'undefined' && AuthService.STORAGE_KEYS && AuthService.STORAGE_KEYS.USER_PROGRESS) { const legacyKey = AuthService.STORAGE_KEYS.USER_PROGRESS + username; result.legacyKey = legacyKey; const legacy = localStorage.getItem(legacyKey); if (legacy) { result.foundLegacy = true; result.legacyRaw = legacy; let legacyObj = null; try { legacyObj = JSON.parse(legacy); } catch (e) { legacyObj = null; } const migrated = this.initializeUserData(username); if (legacyObj) { const discovered = Array.isArray(legacyObj.discoveredElements) ? legacyObj.discoveredElements : []; migrated.discoveries = discovered.map(sym => ({ id: String(sym), symbol: String(sym), name: String(sym), completed: true, dateDiscovered: new Date().toISOString() })); migrated.progress = { ...migrated.progress, totalDiscoveries: migrated.discoveries.length, completedDiscoveries: migrated.discoveries.length, progressPercentage: (migrated.discoveries.length / 118) * 100, milestones: { beginner: (migrated.discoveries.length / 118) * 100 >= 10, intermediate: (migrated.discoveries.length / 118) * 100 >= 50, advanced: (migrated.discoveries.length / 118) * 100 >= 75, master: (migrated.discoveries.length / 118) * 100 >= 100 } }; localStorage.setItem(this.STORAGE_KEYS.USER_DATA + username, JSON.stringify(migrated)); result.migrated = true; result.migratedCount = migrated.discoveries.length; } } } else { result.error = 'AuthService or its STORAGE_KEYS.USER_PROGRESS not available'; } } catch (err) { result.error = String(err); } return result; },
 
     async saveUserData(username, data) {
+        console.log('saveUserData called for username:', username);
         // Use resolved id (firebase uid when available) for storage and remote writes
         const id = this.resolveUserId(username);
+        console.log('Resolved user ID:', id);
+        
+        // Save to local storage
         localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data));
+        console.log('Saved to local storage');
+        
         try {
+            console.log('Checking Firebase readiness...');
             const fbReady = await this.ensureFirebase();
+            console.log('Firebase ready:', fbReady);
+            
             if (fbReady) {
+                console.log('Attempting to save to Firebase...');
                 const ok = await this.firebaseSaveUserData(id, data);
+                console.log('Firebase save result:', ok);
+                
                 if (ok) {
                     window.dispatchEvent(new CustomEvent('progressSync', { detail: { type: 'success', message: 'Synced with Firebase' } }));
+                    console.log('Firebase sync event dispatched');
                     return;
                 }
             }
@@ -222,13 +355,111 @@ const DiscoveryService = {
 
     saveUserDataLocal(username, data) { const id = this.resolveUserId(username); localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data)); },
 
-    addDiscovery(username, discovery) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : this.initializeUserData(id); const existingIndex = userData.discoveries.findIndex(d => d.id === discovery.id); if (existingIndex === -1) userData.discoveries.push({ ...discovery, dateDiscovered: new Date().toISOString() }); else userData.discoveries[existingIndex] = { ...userData.discoveries[existingIndex], ...discovery, dateModified: new Date().toISOString() }; this.updateProgress(id, userData); this.saveUserData(id, userData); return userData; },
+    addDiscovery(username, discovery) {
+        console.log('Adding discovery for user:', username);
+        const id = this.resolveUserId(username);
+        if (!id) {
+            console.error('Cannot add discovery - invalid user ID');
+            return null;
+        }
 
-    updateProgress(username, userData = null) { const id = this.resolveUserId(username); if (!userData) { const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); userData = local ? JSON.parse(local) : null; } if (!userData) return null; const totalPossibleDiscoveries = 118; const completedDiscoveries = userData.discoveries.filter(d => d.completed).length; const progressPercentage = (completedDiscoveries / totalPossibleDiscoveries) * 100; userData.progress = { ...userData.progress, totalDiscoveries: userData.discoveries.length, completedDiscoveries, progressPercentage, milestones: { beginner: progressPercentage >= 10, intermediate: progressPercentage >= 50, advanced: progressPercentage >= 75, master: progressPercentage >= 100 } }; this.saveUserData(id, userData); this.emitProgressUpdate(userData.progress); return userData.progress; },
+        // Get current user data
+        const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+        const userData = local ? JSON.parse(local) : this.initializeUserData(id);
 
-    getDiscoveries(username) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : null; return userData ? userData.discoveries : []; },
+        // Validate and normalize discovery data
+        if (!discovery || !discovery.id) {
+            console.error('Invalid discovery data:', discovery);
+            return null;
+        }
 
-    getProgress(username) { const id = this.resolveUserId(username); const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id); const userData = local ? JSON.parse(local) : null; return userData ? userData.progress : null; },
+        // Find or update the discovery
+        const existingIndex = userData.discoveries.findIndex(d => d.id === discovery.id);
+        const now = new Date().toISOString();
+
+        if (existingIndex === -1) {
+            // New discovery
+            userData.discoveries.push({
+                ...discovery,
+                dateDiscovered: now,
+                lastUpdated: now,
+                completed: true
+            });
+        } else {
+            // Update existing discovery
+            userData.discoveries[existingIndex] = {
+                ...userData.discoveries[existingIndex],
+                ...discovery,
+                lastUpdated: now,
+                completed: true
+            };
+        }
+
+        console.log('Discovery added/updated:', discovery.id);
+        
+        // Update progress and save
+        this.updateProgress(id, userData);
+        this.saveUserData(id, userData);
+        return userData;
+    },
+
+    updateProgress(username, userData = null) {
+        console.log('Updating progress for user:', username);
+        const id = this.resolveUserId(username);
+        if (!id) {
+            console.warn('Cannot update progress - invalid user ID');
+            return null;
+        }
+
+        if (!userData) {
+            const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+            userData = local ? JSON.parse(local) : null;
+        }
+
+        if (!userData) {
+            console.warn('No user data available for progress update');
+            return null;
+        }
+
+        const totalPossibleDiscoveries = 118;
+        const completedDiscoveries = userData.discoveries.filter(d => d.completed).length;
+        const progressPercentage = (completedDiscoveries / totalPossibleDiscoveries) * 100;
+
+        userData.progress = {
+            ...userData.progress,
+            totalDiscoveries: userData.discoveries.length,
+            completedDiscoveries,
+            progressPercentage,
+            milestones: {
+                beginner: progressPercentage >= 10,
+                intermediate: progressPercentage >= 50,
+                advanced: progressPercentage >= 75,
+                master: progressPercentage >= 100
+            },
+            lastUpdated: new Date().toISOString()
+        };
+
+        console.log('Progress updated:', userData.progress);
+        this.saveUserData(id, userData);
+        this.emitProgressUpdate(userData.progress);
+        return userData.progress;
+    },
+
+    getDiscoveries(username) {
+        const id = this.resolveUserId(username);
+        if (!id) return [];
+        const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+        const userData = local ? JSON.parse(local) : null;
+        return userData ? userData.discoveries : [];
+    },
+
+    getProgress(username) {
+        const id = this.resolveUserId(username);
+        if (!id) return null;
+        const local = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+        const userData = local ? JSON.parse(local) : null;
+        return userData ? userData.progress : null;
+    },
 
     emitProgressUpdate(progress) { document.dispatchEvent(new CustomEvent('progressUpdate', { detail: progress })); }
 };

@@ -1,0 +1,240 @@
+// ChemistryCraft Module
+const ChemistryCraft = {
+    // UI Elements
+    elementGrid: null,
+    combineBtn: null,
+    resultArea: null,
+    discoveriesList: null,
+    pendingDiscoveriesList: null,
+    searchInput: null,
+
+    // Initial elements available to the user
+    initialElements: [
+        // Nonmetals
+        { symbol: 'H', name: 'Hydrogen', color: '#E6E6E6', type: 'nonmetal' },
+        { symbol: 'C', name: 'Carbon', color: '#666666', type: 'nonmetal' },
+        { symbol: 'N', name: 'Nitrogen', color: '#99CCFF', type: 'nonmetal' },
+        { symbol: 'O', name: 'Oxygen', color: '#FF9999', type: 'nonmetal' },
+        { symbol: 'P', name: 'Phosphorus', color: '#FF9966', type: 'nonmetal' },
+        { symbol: 'S', name: 'Sulfur', color: '#FFFF00', type: 'nonmetal' },
+        { symbol: 'Se', name: 'Selenium', color: '#FFA07A', type: 'nonmetal' },
+
+        // Noble Gases
+        { symbol: 'He', name: 'Helium', color: '#FFE5CC', type: 'noble-gas' },
+        { symbol: 'Ne', name: 'Neon', color: '#FF99CC', type: 'noble-gas' },
+        { symbol: 'Ar', name: 'Argon', color: '#FF99CC', type: 'noble-gas' },
+        { symbol: 'Kr', name: 'Krypton', color: '#FF99CC', type: 'noble-gas' },
+        { symbol: 'Xe', name: 'Xenon', color: '#FF99CC', type: 'noble-gas' },
+        { symbol: 'Rn', name: 'Radon', color: '#FF99CC', type: 'noble-gas' },
+        { symbol: 'Og', name: 'Oganesson', color: '#FF99CC', type: 'noble-gas' }
+    ],
+
+    // Initialize UI
+    init() {
+        console.log('[ChemistryCraft] Initializing...');
+        
+        // Get UI elements
+        this.elementGrid = document.getElementById('elementGrid');
+        this.combineBtn = document.getElementById('combineBtn');
+        this.resultArea = document.getElementById('resultArea');
+        this.discoveriesList = document.getElementById('discoveriesList');
+        this.searchInput = document.getElementById('elementSearch');
+
+        // Verify UI elements exist
+        if (!this.elementGrid || !this.combineBtn || !this.resultArea || !this.discoveriesList || !this.searchInput) {
+            console.error('[ChemistryCraft] Missing required UI elements');
+            return false;
+        }
+
+        // Initialize elements grid
+        this.populateElements(this.initialElements);
+
+        // Setup event listeners
+        this.setupEventListeners();
+
+        // Load saved discoveries
+        this.loadSavedDiscoveries();
+
+        console.log('[ChemistryCraft] Initialization complete');
+        return true;
+    },
+
+    // Populate elements grid
+    populateElements(elements) {
+        if (!Array.isArray(elements) || elements.length === 0) {
+            console.error('[ChemistryCraft] Invalid elements array:', elements);
+            this.elementGrid.innerHTML = '<div class="element error">Error: No elements available</div>';
+            return false;
+        }
+
+        try {
+            console.log('[ChemistryCraft] Populating elements:', elements.length);
+            this.elementGrid.innerHTML = '';
+
+            elements.forEach(element => {
+                if (!element || !element.symbol || !element.name) {
+                    console.warn('[ChemistryCraft] Invalid element:', element);
+                    return;
+                }
+
+                const elementDiv = this.createElementDiv(element);
+                this.elementGrid.appendChild(elementDiv);
+            });
+
+            return true;
+        } catch (error) {
+            console.error('[ChemistryCraft] Error populating elements:', error);
+            this.elementGrid.innerHTML = '<div class="element error">Error loading elements</div>';
+            return false;
+        }
+    },
+
+    // Create element div
+    createElementDiv(element) {
+        const div = document.createElement('div');
+        div.className = 'element';
+        div.draggable = true;
+        div.style.backgroundColor = element.color || '#cccccc';
+        
+        div.innerHTML = `
+            <div class="element-symbol">${element.symbol}</div>
+            <div class="element-name">${element.name}</div>
+        `;
+
+        div.addEventListener('dragstart', event => {
+            event.dataTransfer.setData('text/plain', JSON.stringify(element));
+            div.classList.add('dragging');
+        });
+
+        div.addEventListener('dragend', () => {
+            div.classList.remove('dragging');
+        });
+
+        return div;
+    },
+
+    // Setup event listeners
+    setupEventListeners() {
+        // Search functionality
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', event => {
+                const searchTerm = event.target.value.toLowerCase();
+                const filteredElements = this.initialElements.filter(element => 
+                    element.name.toLowerCase().includes(searchTerm) ||
+                    element.symbol.toLowerCase().includes(searchTerm) ||
+                    element.type.toLowerCase().includes(searchTerm)
+                );
+                this.populateElements(filteredElements);
+            });
+        }
+
+        // Combine button
+        this.combineBtn.addEventListener('click', () => this.combineElements());
+
+        // Setup drag and drop handlers
+        ['slot1', 'slot2'].forEach(slotId => {
+            const slot = document.getElementById(slotId);
+            if (slot) {
+                slot.addEventListener('dragover', this.handleDragOver.bind(this));
+                slot.addEventListener('drop', this.handleDrop.bind(this));
+                slot.addEventListener('dragleave', this.handleDragLeave.bind(this));
+            }
+        });
+    },
+
+    // Drag and drop handlers
+    handleDragOver(event) {
+        event.preventDefault();
+        event.target.closest('.crafting-slot').classList.add('drag-over');
+        this.combineBtn.disabled = false;
+    },
+
+    handleDragLeave(event) {
+        event.target.closest('.crafting-slot').classList.remove('drag-over');
+    },
+
+    handleDrop(event) {
+        event.preventDefault();
+        const slot = event.target.closest('.crafting-slot');
+        slot.classList.remove('drag-over');
+
+        try {
+            const elementData = event.dataTransfer.getData('text/plain');
+            const element = JSON.parse(elementData);
+            
+            // Clear existing content
+            slot.innerHTML = '';
+            
+            // Create and add the dropped element
+            const elementDiv = this.createElementDiv(element);
+            elementDiv.draggable = false; // Prevent dragging once dropped
+            slot.appendChild(elementDiv);
+            
+            // Store element data
+            slot.dataset.element = elementData;
+
+            // Enable combine button if both slots are filled
+            const slot1 = document.getElementById('slot1');
+            const slot2 = document.getElementById('slot2');
+            this.combineBtn.disabled = !(slot1.dataset.element && slot2.dataset.element);
+
+        } catch (error) {
+            console.error('[ChemistryCraft] Error handling drop:', error);
+            slot.innerHTML = '<div class="slot-label">Error dropping element</div>';
+        }
+    },
+
+    // Combine elements
+    combineElements() {
+        const slot1 = document.getElementById('slot1');
+        const slot2 = document.getElementById('slot2');
+
+        // Get dragged elements' data
+        const element1 = slot1.dataset.element ? JSON.parse(slot1.dataset.element) : null;
+        const element2 = slot2.dataset.element ? JSON.parse(slot2.dataset.element) : null;
+
+        if (!element1 || !element2) {
+            this.showToast('Please drop elements in both slots to combine them');
+            return;
+        }
+
+        // Try combination
+        this.attemptCombination(element1, element2);
+    },
+
+    // Show a toast message
+    showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${isError ? 'error' : ''}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }, 100);
+    },
+
+    // Load saved discoveries
+    loadSavedDiscoveries() {
+        // TODO: Implement loading discoveries from storage/server
+        console.log('[ChemistryCraft] Loading saved discoveries...');
+    },
+
+    // Attempt to combine elements
+    attemptCombination(element1, element2) {
+        // TODO: Implement combination logic
+        console.log('[ChemistryCraft] Attempting combination:', element1, element2);
+        this.showToast('Combination feature coming soon!');
+    }
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    if (!ChemistryCraft.init()) {
+        console.error('[ChemistryCraft] Failed to initialize');
+    }
+});

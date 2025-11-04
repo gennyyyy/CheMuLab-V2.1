@@ -6,11 +6,23 @@
     <title>CheMuLab - Your Lab</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/chemistry_craft.css">
+    <!-- Firebase Client SDK (ensure available before app code) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/route-protection.js"></script>
     <script src="js/discovery-service.js"></script>
     <script src="js/chemistry_craft.js"></script>
     <script src="js/script.js"></script>
+    <style>
+    /* Simple toast styles used by ChemistryCraft */
+    #toastContainer { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 99999; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; }
+    .toast { background:#0f1724; color:#d1fae5; padding:10px 14px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.35); font-family:inherit; font-size:14px; pointer-events:auto; opacity:0; transform:translateY(-6px); transition:opacity .25s ease, transform .25s ease; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -63,11 +75,11 @@
                 
                 <div class="crafting-area">
                     <div class="crafting-slots">
-                        <div class="crafting-slot" id="slot1" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <div class="crafting-slot" id="slot1">
                             <div class="slot-label">Drop First Element</div>
                         </div>
                         <div class="plus-sign">+</div>
-                        <div class="crafting-slot" id="slot2" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <div class="crafting-slot" id="slot2">
                             <div class="slot-label">Drop Second Element</div>
                         </div>
                     </div>
@@ -81,6 +93,10 @@
 
                 <div class="discoveries-panel">
                     <h3>Your Discoveries</h3>
+                    <h4 style="margin-top:8px; font-size:0.95em; color:#777;">Pending (not yet synced)</h4>
+                    <div class="pending-discoveries-list" id="pendingDiscoveriesList" style="margin-bottom:12px;">
+                        <!-- Pending (queued) discoveries will appear here when offline or before login -->
+                    </div>
                     <div class="discoveries-list" id="discoveriesList">
                         <!-- Discoveries will be added here -->
                     </div>
@@ -135,5 +151,7 @@
             </div>
         </div>
     </div>
+    <!-- Toast container used for non-blocking user messages -->
+    <div id="toastContainer" aria-live="polite"></div>
 </body>
 </html>

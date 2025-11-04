@@ -36,13 +36,13 @@ const AuthService = {
                 // attempt to load profile (username) from Firestore users collection
                 try {
                     const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-                    if (doc.exists) {
-                        const profile = doc.data();
-                        snapshot.username = profile.username || snapshot.email || user.uid;
-                        snapshot.isAdmin = !!profile.isAdmin;
-                    }
+                    const profile = doc && doc.exists ? doc.data() : null;
+                    // Ensure username is always present — fallback to email or uid when profile missing
+                    snapshot.username = (profile && profile.username) ? profile.username : (snapshot.email || user.uid);
+                    snapshot.isAdmin = !!(profile && profile.isAdmin);
                 } catch (e) {
-                    // ignore profile load errors — keep minimal snapshot
+                    // ignore profile load errors — keep sensible fallback username
+                    snapshot.username = snapshot.email || user.uid;
                 }
                 // keep snapshot in memory only (do NOT persist credentials locally)
                 this._currentSnapshot = snapshot;
@@ -53,12 +53,64 @@ const AuthService = {
         });
     },
 
+        // Check if email already exists in Firebase Authentication
+    async checkEmailExists(email) {
+        if (!window.firebase || !firebase.auth) throw new Error('Firebase not initialized');
+        
+        try {
+            // Use Firebase's fetchSignInMethodsForEmail to check if email exists
+            const signInMethods = await firebase.auth().fetchSignInMethodsForEmail(email);
+            // If signInMethods array has any entries, the email is already registered
+            return signInMethods && signInMethods.length > 0;
+        } catch (error) {
+            console.error('Error checking email:', error);
+            // If there's an error, assume email doesn't exist to allow registration attempt
+            return false;
+        }
+    },
+
+    // Validate email format
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    },
+
+    // Check if username already exists in Firestore
+    async checkUsernameExists(username) {
+        if (!window.firebase || !firebase.firestore) throw new Error('Firebase not initialized');
+        
+        try {
+            const usernameDoc = await firebase.firestore().collection('usernames').doc(username).get();
+            return usernameDoc.exists;
+        } catch (error) {
+            console.error('Error checking username:', error);
+            return false;
+        }
+    },
+
     // Register a new user with username + email + password
     // If there's an anonymous user signed in, this will link the anonymous account and preserve uid/data
     async register(username, email, password) {
         if (!window.firebase || !firebase.auth) throw new Error('Firebase not initialized');
 
         console.info('AuthService.register called', { username, email });
+
+        // Validate email format
+        if (!this.validateEmail(email)) {
+            throw new Error('Invalid email format');
+        }
+
+        // Check if email already exists
+        const emailExists = await this.checkEmailExists(email);
+        if (emailExists) {
+            throw new Error('This email address is already registered. Please use a different email or sign in.');
+        }
+
+        // Check if username already exists
+        const usernameExists = await this.checkUsernameExists(username);
+        if (usernameExists) {
+            throw new Error('This username is already taken. Please choose a different username.');
+        }
 
         let uid = null;
         let createdNewAuthUser = false;
@@ -80,7 +132,15 @@ const AuthService = {
                 console.info('createUserWithEmailAndPassword succeeded', { uid });
             }
         } catch (err) {
-            // bubble up (e.g., email already in use, weak-password)
+            // Handle Firebase Auth errors with user-friendly messages
+            if (err.code === 'auth/email-already-in-use') {
+                throw new Error('This email address is already registered. Please use a different email or sign in.');
+            } else if (err.code === 'auth/weak-password') {
+                throw new Error('Password is too weak. Please use at least 6 characters.');
+            } else if (err.code === 'auth/invalid-email') {
+                throw new Error('Invalid email address format.');
+            }
+            // bubble up other errors
             throw err;
         }
 
@@ -183,7 +243,11 @@ const AuthService = {
         try {
             if (window.firebase && firebase.auth && firebase.auth().currentUser) {
                 const u = firebase.auth().currentUser;
-                return { uid: u.uid, email: u.email || null, isAnonymous: !!u.isAnonymous };
+                // Merge with in-memory snapshot if available so callers can access username/isAdmin
+                const snapshot = this._currentSnapshot || {};
+                // Provide a sensible username fallback when snapshot.username is not yet populated
+                const fallbackUsername = snapshot.username || (u && (u.email || u.uid)) || null;
+                return { uid: u.uid, email: u.email || null, isAnonymous: !!u.isAnonymous, username: fallbackUsername, isAdmin: !!snapshot.isAdmin };
             }
         } catch (e) {}
         // Fallback to in-memory snapshot only (do not read persisted credentials)

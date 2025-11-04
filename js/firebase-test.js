@@ -1,63 +1,83 @@
 // Test Firebase connection and sync functionality
 async function testFirebaseConnection() {
     console.log('Testing Firebase connection...');
-    
-    // Test Firebase initialization
-    const isFirebaseReady = await DiscoveryService.ensureFirebase();
-    console.log('Firebase initialized:', isFirebaseReady);
-    
-    if (!isFirebaseReady) {
-        console.error('Firebase failed to initialize. Check your firebase-config.js and make sure the script is loaded.');
-        return;
-    }
 
-    // Check for authenticated user (must sign in with email/password first)
-    let currentUser = firebase.auth().currentUser;
-    if (currentUser) {
-        console.log('Running tests with authenticated user:', { uid: currentUser.uid });
-    } else {
-        console.log('No authenticated user found. Please sign in with an email/password account first to run Firebase connection tests.');
-        return;
-    }
-
-    // Test Firestore access with proper user-scoped collection
+    // Ensure Firebase is available (DiscoveryService.ensureFirebase may initialize it)
+    let isFirebaseReady = false;
     try {
-        await firebase.firestore().collection('progress').doc(currentUser.uid).set({
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            testId: 'connection-test',
-            progress: {
-                totalDiscoveries: 0,
-                completedDiscoveries: 0,
-                progressPercentage: 0,
-                milestones: { beginner: false, intermediate: false, advanced: false, master: false }
-            }
-        });
-        console.log('Firestore write successful to progress collection');
-
-        await firebase.firestore().collection('discoveries').doc(currentUser.uid).set({
-            discoveries: [],
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        console.log('Firestore write successful to discoveries collection');
-    } catch (error) {
-        // Print structured error info to help diagnose rules/auth/network issues
-        try {
-            console.error('Firestore write failed. Error code:', error && error.code, 'message:', error && error.message);
-            if (error && error.stack) console.error(error.stack);
-        } catch (logErr) {
-            console.error('Error while logging Firestore error', logErr);
-        }
-
-        // Helpful next steps
-        if (!currentUser) {
-            console.log('No authenticated user. Enable Anonymous Authentication or sign in before attempting writes.');
+        if (window.DiscoveryService && DiscoveryService.ensureFirebase) {
+            isFirebaseReady = await DiscoveryService.ensureFirebase();
         } else {
-            console.log('Possible causes: Firestore security rules blocking writes, or the signed-in user lacks permissions. Check Firestore rules and Authentication state for this UID:', currentUser.uid);
+            // If DiscoveryService isn't present, consider firebase presence directly
+            isFirebaseReady = !!(window.firebase && firebase.initializeApp);
         }
+    } catch (err) {
+        console.warn('Error while ensuring Firebase:', err);
+        isFirebaseReady = !!(window.firebase && firebase.initializeApp);
     }
+
+    console.log('Firebase initialized:', isFirebaseReady);
+    if (!isFirebaseReady) {
+        console.error('Firebase failed to initialize. Check your firebase-config.js and make sure the SDK/init script is loaded.');
+        return;
+    }
+
+    // Wait for the auth state to settle using onAuthStateChanged.
+    // This will call back immediately with the current auth state (may be null), and again if it changes.
+    const auth = firebase.auth();
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        unsubscribe(); // run once per test invocation
+
+        if (!user) {
+            console.log('No authenticated user found. Please sign in with an email/password account first to run Firebase connection tests.');
+            return;
+        }
+
+        console.log('Running tests with authenticated user:', { uid: user.uid, email: user.email });
+
+        // Test Firestore access with proper user-scoped collection
+        try {
+            await firebase.firestore().collection('progress').doc(user.uid).set({
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                testId: 'connection-test',
+                progress: {
+                    totalDiscoveries: 0,
+                    completedDiscoveries: 0,
+                    progressPercentage: 0,
+                    milestones: { beginner: false, intermediate: false, advanced: false, master: false }
+                }
+            });
+            console.log('Firestore write successful to progress collection');
+
+            await firebase.firestore().collection('discoveries').doc(user.uid).set({
+                discoveries: [],
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('Firestore write successful to discoveries collection');
+        } catch (error) {
+            // Print structured error info to help diagnose rules/auth/network issues
+            try {
+                console.error('Firestore write failed. Error code:', error && error.code, 'message:', error && error.message);
+                if (error && error.stack) console.error(error.stack);
+            } catch (logErr) {
+                console.error('Error while logging Firestore error', logErr);
+            }
+
+            // Helpful next steps
+            console.log('Possible causes: Firestore security rules blocking writes, or the signed-in user lacks permissions. Check Firestore rules and Authentication state for this UID:', user.uid);
+        }
+    }, (err) => {
+        console.error('onAuthStateChanged error:', err);
+    });
 }
 
-// Run tests when the page loads
+// Run tests when the page loads; wait for firebaseReady if necessary
 document.addEventListener('DOMContentLoaded', () => {
-    testFirebaseConnection();
+    function start() { testFirebaseConnection(); }
+    if (window.firebase && firebase.auth) {
+        start();
+    } else {
+        window.addEventListener('firebaseReady', start, { once: true });
+    }
 });

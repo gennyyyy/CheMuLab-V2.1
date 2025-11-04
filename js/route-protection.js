@@ -38,14 +38,39 @@ document.addEventListener('DOMContentLoaded', function() {
         // Route protection: defer the decision until auth state is known (prevents flash/redirect loop)
         function evaluateRouteWithUser(user) {
             const nowUser = user || getCurrentUser();
-            if (!isSignInPage && !nowUser) {
-                // Redirect to sign in if not authenticated
+            const isLabPage = window.location.pathname.endsWith('your_lab.html');
+            
+            // Allow lab page in offline mode, protect other pages
+            if (!isSignInPage && !nowUser && !isLabPage) {
+                // Redirect to sign in if not authenticated and not on lab page
                 window.location.href = 'sign_in.html';
                 return;
             } else if (isSignInPage && nowUser) {
                 // Redirect to home if already authenticated
                 window.location.href = 'index.html';
                 return;
+            }
+            
+            // Add offline mode banner for lab page
+            if (isLabPage && !nowUser) {
+                const offlineBanner = document.createElement('div');
+                offlineBanner.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(255, 193, 7, 0.95);
+                    color: #000;
+                    text-align: center;
+                    padding: 8px;
+                    font-size: 14px;
+                    z-index: 1000;
+                `;
+                offlineBanner.innerHTML = `
+                    You're in offline mode. <a href="sign_in.html" style="color: #0056b3; text-decoration: underline;">Sign in</a> 
+                    to save your discoveries and track progress!
+                `;
+                document.body.appendChild(offlineBanner);
             }
 
             // Update user status display
@@ -96,10 +121,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // This prevents flash-redirects when auth state is still being established.
             const snapshot = getCurrentUser();
             updateUserStatus();
-            // Last-resort fallback: if after 3s auth still hasn't reported, evaluate based on snapshot (avoids stuck pages)
+            // Last-resort fallback: if after 3s auth still hasn't reported, evaluate based on snapshot.
+            // IMPORTANT: only redirect if we actually have a non-null snapshot; otherwise
+            // wait for firebaseReady/onAuthStateChanged to avoid premature redirect loops.
             setTimeout(() => {
                 console.info('route-protection: fallback evaluation after timeout');
-                evaluateRouteWithUser(snapshot);
+                if (snapshot) {
+                    evaluateRouteWithUser(snapshot);
+                } else {
+                    console.info('route-protection: no auth snapshot available after timeout — awaiting firebaseReady/onAuthStateChanged');
+                }
             }, 3000);
         }
 
