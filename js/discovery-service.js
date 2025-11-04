@@ -275,9 +275,22 @@ const DiscoveryService = {
         const id = this.resolveUserId(username);
         console.log('Resolved user ID:', id);
         
-        // Save to local storage
-        localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(data));
-        console.log('Saved to local storage');
+        // Save to local storage with timestamp
+        const dataWithTimestamp = {
+            ...data,
+            lastSaved: new Date().toISOString(),
+            version: (data.version || 0) + 1
+        };
+        
+        // Keep a backup of the previous version
+        const previousData = localStorage.getItem(this.STORAGE_KEYS.USER_DATA + id);
+        if (previousData) {
+            localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id + '_backup', previousData);
+        }
+        
+        // Save current version
+        localStorage.setItem(this.STORAGE_KEYS.USER_DATA + id, JSON.stringify(dataWithTimestamp));
+        console.log('Saved to local storage with timestamp');
         
         try {
             console.log('Checking Firebase readiness...');
@@ -373,8 +386,15 @@ const DiscoveryService = {
             return null;
         }
 
-        // Find or update the discovery
-        const existingIndex = userData.discoveries.findIndex(d => d.id === discovery.id);
+        // Ensure discoveries array exists
+        if (!Array.isArray(userData.discoveries)) {
+            userData.discoveries = [];
+        }
+
+        // Find or update the discovery - check by both ID and symbol
+        const existingIndex = userData.discoveries.findIndex(d => 
+            d.id === discovery.id || d.symbol === discovery.symbol
+        );
         const now = new Date().toISOString();
 
         if (existingIndex === -1) {

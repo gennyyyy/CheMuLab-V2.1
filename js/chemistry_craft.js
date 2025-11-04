@@ -456,6 +456,39 @@ const ChemistryCraft = {
         }
     },
 
+    // Get current discoveries
+    async getDiscoveries() {
+        if (!this.discoveriesList) return [];
+        
+        return Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
+            .map(item => ({
+                symbol: item.querySelector('.element-symbol')?.textContent || '',
+                name: item.querySelector('.element-name')?.textContent || '',
+                dateDiscovered: item.dataset.dateDiscovered || new Date().toISOString()
+            }))
+            .filter(d => d.symbol && d.name);
+    },
+
+    // Restore discoveries from backup
+    async restoreDiscoveries(discoveries) {
+        if (!Array.isArray(discoveries) || !discoveries.length) return;
+        
+        console.log('[ChemistryCraft] Restoring', discoveries.length, 'discoveries from backup');
+        
+        // Clear current list
+        if (this.discoveriesList) {
+            this.discoveriesList.innerHTML = '';
+        }
+        
+        // Add each discovery back
+        for (const discovery of discoveries) {
+            await this.addDiscoveryToUI(discovery);
+        }
+        
+        // Save to Firestore
+        await this.saveDiscoveries();
+    },
+
     // Load saved discoveries from cloud
     async loadSavedDiscoveries() {
         // Validate environment
@@ -491,9 +524,51 @@ const ChemistryCraft = {
             const userDoc = db.collection('progress').doc(currentUser.uid);
             const doc = await userDoc.get();
             
-            // Initialize empty discoveries array if document doesn't exist
-            if (!doc.exists) {
-                console.log('[ChemistryCraft] Creating initial discoveries document');
+            // Try to load from multiple sources
+            let discoveries = [];
+            
+            // 1. Try progress collection
+            if (doc.exists && Array.isArray(doc.data()?.discoveries)) {
+                discoveries = doc.data().discoveries;
+                console.log('[ChemistryCraft] Loaded from progress collection:', discoveries.length);
+            }
+            
+            // 2. If no discoveries, try discoveries collection
+            if (discoveries.length === 0) {
+                const discoveryDoc = await db.collection('discoveries').doc(currentUser.uid).get();
+                if (discoveryDoc.exists && Array.isArray(discoveryDoc.data()?.discoveries)) {
+                    discoveries = discoveryDoc.data().discoveries;
+                    console.log('[ChemistryCraft] Loaded from discoveries collection:', discoveries.length);
+                }
+            }
+            
+            // 3. If still no discoveries, try local storage backup
+            if (discoveries.length === 0) {
+                const localBackup = localStorage.getItem('chemulab_discoveries_backup_' + currentUser.uid);
+                if (localBackup) {
+                    try {
+                        const backupData = JSON.parse(localBackup);
+                        if (Array.isArray(backupData) && backupData.length > 0) {
+                            discoveries = backupData;
+                            console.log('[ChemistryCraft] Loaded from local backup:', discoveries.length);
+                            
+                            // Save recovered data back to Firestore
+                            await userDoc.set({
+                                discoveries: discoveries,
+                                restored: true,
+                                restoredFrom: 'local_backup',
+                                lastUpdated: new Date().toISOString()
+                            });
+                        }
+                    } catch (e) {
+                        console.error('[ChemistryCraft] Error parsing local backup:', e);
+                    }
+                }
+            }
+            
+            // If we still have no discoveries, initialize with empty array
+            if (discoveries.length === 0) {
+                console.log('[ChemistryCraft] No discoveries found in any source, initializing empty array');
                 await userDoc.set({
                     discoveries: [],
                     created: new Date().toISOString(),
@@ -501,22 +576,19 @@ const ChemistryCraft = {
                 });
                 return;
             }
-            
-            const data = doc.data();
-            // Initialize discoveries array if it doesn't exist
-            if (!Array.isArray(data?.discoveries)) {
-                console.log('[ChemistryCraft] Initializing discoveries array');
-                await userDoc.set({
-                    discoveries: [],
-                    lastUpdated: new Date().toISOString()
-                }, { merge: true });
-                return;
-            }
 
+            // Clear existing UI first
+            while (this.discoveriesList.firstChild) {
+                this.discoveriesList.removeChild(this.discoveriesList.firstChild);
+            }
+            
             // Process and display each discovery
             let loadedCount = 0;
-            for (const discovery of data.discoveries) {
-                if (discovery?.symbol && discovery?.name) {
+            const seenSymbols = new Set();
+            
+            for (const discovery of discoveries) {
+                if (discovery?.symbol && discovery?.name && !seenSymbols.has(discovery.symbol)) {
+                    seenSymbols.add(discovery.symbol);
                     this.addDiscoveryToUI({
                         symbol: discovery.symbol,
                         name: discovery.name,
@@ -557,6 +629,18 @@ const ChemistryCraft = {
             return;
         }
 
+        // Also save to local storage as backup
+        const saveToLocal = (discoveries) => {
+            try {
+                const user = firebase.auth().currentUser;
+                if (user) {
+                    localStorage.setItem('chemulab_discoveries_backup_' + user.uid, JSON.stringify(discoveries));
+                }
+            } catch (e) {
+                console.error('[ChemistryCraft] Failed to save local backup:', e);
+            }
+        };
+
         try {
             // Check for authenticated user
             const currentUser = window.firebase.auth().currentUser;
@@ -581,22 +665,90 @@ const ChemistryCraft = {
             const db = window.firebase.firestore();
             const userDoc = db.collection('progress').doc(currentUser.uid);
 
-            // Get existing document or create new one
-            const doc = await userDoc.get();
-            if (!doc.exists) {
-                console.log('[ChemistryCraft] Creating new progress document');
-                await userDoc.set({
-                    discoveries: discoveries,
-                    created: new Date().toISOString(),
-                    lastUpdated: new Date().toISOString()
-                });
-            } else {
-                console.log('[ChemistryCraft] Updating existing progress document');
-                await userDoc.set({
-                    discoveries: discoveries,
-                    lastUpdated: new Date().toISOString()
-                }, { merge: true });
+            console.log('[ChemistryCraft] Current discoveries to save:', discoveries);
+
+            // Get both documents
+            const [progressDoc, discoveryDoc] = await Promise.all([
+                db.collection('progress').doc(currentUser.uid).get(),
+                db.collection('discoveries').doc(currentUser.uid).get()
+            ]);
+
+            // Gather existing discoveries from both collections
+            let existingDiscoveries = [];
+            if (progressDoc.exists && Array.isArray(progressDoc.data()?.discoveries)) {
+                existingDiscoveries = [...existingDiscoveries, ...progressDoc.data().discoveries];
             }
+            if (discoveryDoc.exists && Array.isArray(discoveryDoc.data()?.discoveries)) {
+                existingDiscoveries = [...existingDiscoveries, ...discoveryDoc.data().discoveries];
+            }
+
+            console.log('[ChemistryCraft] Existing discoveries:', existingDiscoveries.length);
+
+            // Create a map to deduplicate discoveries
+            const discoveryMap = new Map();
+
+            // Add existing discoveries to map
+            existingDiscoveries.forEach(d => {
+                if (d && d.symbol) {
+                    discoveryMap.set(d.symbol, {
+                        ...d,
+                        lastUpdated: d.lastUpdated || d.dateDiscovered || new Date().toISOString()
+                    });
+                }
+            });
+
+            // Add new discoveries (these take precedence)
+            discoveries.forEach(d => {
+                if (d && d.symbol) {
+                    discoveryMap.set(d.symbol, {
+                        ...d,
+                        dateDiscovered: d.dateDiscovered || new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    });
+                }
+            });
+
+            // Convert map back to array
+            const mergedDiscoveries = Array.from(discoveryMap.values());
+            console.log('[ChemistryCraft] Merged discoveries:', mergedDiscoveries.length);
+
+            console.log('[ChemistryCraft] Merging discoveries:', {
+                existing: existingDiscoveries.length,
+                new: discoveries.length,
+                merged: mergedDiscoveries.length
+            });
+
+            // Start batch write
+            const batch = db.batch();
+
+            // Prepare the data to save
+            const saveData = {
+                discoveries: mergedDiscoveries,
+                lastUpdated: new Date().toISOString()
+            };
+
+            // Add created timestamp if it doesn't exist
+            if (!progressDoc.exists || !progressDoc.data()?.created) {
+                saveData.created = new Date().toISOString();
+            }
+
+            // Save to progress collection
+            batch.set(userDoc, saveData, { merge: true });
+
+            // Save to discoveries collection
+            batch.set(db.collection('discoveries').doc(currentUser.uid), saveData, { merge: true });
+
+            // Save local backup
+            localStorage.setItem('chemulab_discoveries_backup_' + currentUser.uid, 
+                JSON.stringify(mergedDiscoveries));
+
+            // Commit the batch
+            await batch.commit();
+
+            console.log('[ChemistryCraft] Successfully saved discoveries:', {
+                total: mergedDiscoveries.length,
+                new: discoveries.length
+            });
 
             console.log(`[ChemistryCraft] Successfully saved ${discoveries.length} discoveries`);
             this.showToast(`${discoveries.length} discoveries saved!`);
@@ -725,8 +877,23 @@ const ChemistryCraft = {
         }
 
         try {
+            // Check if this discovery already exists
+            const existing = Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
+                .find(item => item.querySelector('.element-symbol')?.textContent === element.symbol);
+            
+            if (existing) {
+                console.log('[ChemistryCraft] Discovery already exists in UI:', element.symbol);
+                return;
+            }
+
             const discoveryItem = document.createElement('div');
             discoveryItem.className = 'discovery-item';
+            
+            // Store discovery date
+            const now = new Date().toISOString();
+            discoveryItem.dataset.dateDiscovered = element.dateDiscovered || now;
+            discoveryItem.dataset.lastUpdated = now;
+            
             discoveryItem.innerHTML = `
                 <span class="element-symbol">${element.symbol || ''}</span>
                 <span class="element-name">${element.name || ''}</span>
@@ -734,6 +901,12 @@ const ChemistryCraft = {
             
             this.discoveriesList.appendChild(discoveryItem);
             console.log('[ChemistryCraft] Added discovery to UI:', element.symbol);
+            
+            // Save to storage
+            this.saveDiscoveries().catch(err => {
+                console.error('[ChemistryCraft] Failed to save discovery:', err);
+                this.showToast('Failed to save discoveries. Please try again.', true);
+            });
         } catch (error) {
             console.error('[ChemistryCraft] Failed to add discovery to UI:', error);
         }
@@ -753,6 +926,65 @@ const ChemistryCraft = {
                 });
         } catch (error) {
             console.error('[ChemistryCraft] Error checking discovery:', error);
+            return false;
+        }
+    },
+
+    // Get current discoveries
+    async getDiscoveries() {
+        if (!this.discoveriesList) return [];
+        
+        return Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
+            .map(item => ({
+                symbol: item.querySelector('.element-symbol')?.textContent || '',
+                name: item.querySelector('.element-name')?.textContent || '',
+                dateDiscovered: item.dataset.dateDiscovered || new Date().toISOString()
+            }))
+            .filter(d => d.symbol && d.name);
+    },
+
+    // Create a backup of current discoveries
+    async createBackup() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+        
+        const discoveries = await this.getDiscoveries();
+        if (discoveries && discoveries.length > 0) {
+            localStorage.setItem('chemulab_discoveries_backup_' + user.uid, 
+                JSON.stringify(discoveries));
+            console.log('[ChemistryCraft] Created backup of', discoveries.length, 'discoveries');
+        }
+    },
+
+    // Restore discoveries from backup
+    async restoreFromBackup() {
+        const user = firebase.auth().currentUser;
+        if (!user) return false;
+        
+        const backup = localStorage.getItem('chemulab_discoveries_backup_' + user.uid);
+        if (!backup) return false;
+        
+        try {
+            const discoveries = JSON.parse(backup);
+            if (!Array.isArray(discoveries) || discoveries.length === 0) return false;
+            
+            console.log('[ChemistryCraft] Restoring', discoveries.length, 'discoveries from backup');
+            
+            // Clear current list
+            if (this.discoveriesList) {
+                this.discoveriesList.innerHTML = '';
+            }
+            
+            // Add each discovery back
+            for (const discovery of discoveries) {
+                this.addDiscoveryToUI(discovery);
+            }
+            
+            // Save to Firestore
+            await this.saveDiscoveries();
+            return true;
+        } catch (e) {
+            console.error('[ChemistryCraft] Error restoring from backup:', e);
             return false;
         }
     }
@@ -781,8 +1013,31 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (user?.uid) {
                 console.log('[ChemistryCraft] Loading discoveries for user:', user.uid);
+                // Add a small delay to ensure Firestore is ready
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 await ChemistryCraft.loadSavedDiscoveries();
+                
+                // Verify the load was successful
+                const discoveries = await ChemistryCraft.getDiscoveries();
+                console.log('[ChemistryCraft] Loaded discoveries count:', discoveries?.length || 0);
+                
+                if (!discoveries || discoveries.length === 0) {
+                    // Try to recover from backup in localStorage
+                    const localBackup = localStorage.getItem('chemulab_discoveries_backup_' + user.uid);
+                    if (localBackup) {
+                        const backupData = JSON.parse(localBackup);
+                        await ChemistryCraft.restoreDiscoveries(backupData);
+                    }
+                }
             } else {
+                // Before clearing, backup the current discoveries
+                if (ChemistryCraft.discoveriesList && firebase.auth().currentUser) {
+                    const currentDiscoveries = await ChemistryCraft.getDiscoveries();
+                    if (currentDiscoveries && currentDiscoveries.length > 0) {
+                        localStorage.setItem('chemulab_discoveries_backup_' + firebase.auth().currentUser.uid, 
+                            JSON.stringify(currentDiscoveries));
+                    }
+                }
                 // Clear discoveries when user signs out
                 if (ChemistryCraft.discoveriesList) {
                     ChemistryCraft.discoveriesList.innerHTML = '';
