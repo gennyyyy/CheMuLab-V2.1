@@ -462,42 +462,37 @@ const ChemistryCraft = {
         // Always save to user-specific localStorage for offline access
         localStorage.setItem(key, JSON.stringify(discoveries));
 
-        // If we're not in pending mode and we have a logged-in user, save to Firebase
+        // If we're not in pending mode and we have a logged-in user, save via DiscoveryService
         if (!isPending && currentUser) {
             try {
-                console.log('[ChemistryCraft] Attempting to save to Firebase as:', currentUser.uid);
-                const db = window.firebase.firestore();
-                const batch = db.batch();
-                const userRef = db.collection('users').doc(currentUser.uid);
-                
-                // Add each discovery as a separate document in a subcollection
-                const discoveryPromises = discoveries.map(async (d) => {
-                    const discoveryRef = userRef.collection('discoveries').doc(d.symbol);
-                    batch.set(discoveryRef, {
-                        ...d,
-                        discoveredAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        userId: currentUser.uid
-                    }, { merge: true });
-                });
+                console.log('[ChemistryCraft] Delegating save to DiscoveryService for user:', currentUser.uid);
+                // Build minimal userData object expected by DiscoveryService
+                const username = currentUser.email || currentUser.uid;
+                const userData = {
+                    credentials: { username },
+                    discoveries: discoveries.map(d => ({ id: String(d.symbol), symbol: d.symbol, name: d.name, dateDiscovered: d.timestamp }))
+                };
 
-                // Add user metadata
-                batch.set(userRef, {
-                    email: currentUser.email,
-                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp(),
-                    discoveryCount: discoveries.length
-                }, { merge: true });
-
-                // Execute the batch
-                await batch.commit();
-                console.log('[ChemistryCraft] Successfully saved discoveries to Firebase');
-                this.showToast('Discoveries saved to cloud!');
+                // Use the project's DiscoveryService to perform the save (handles Firebase rules/collection)
+                if (typeof DiscoveryService !== 'undefined' && DiscoveryService.saveUserData) {
+                    await DiscoveryService.saveUserData(username, userData);
+                    console.log('[ChemistryCraft] DiscoveryService.saveUserData completed');
+                    this.showToast('Discoveries saved to cloud!');
+                } else {
+                    // Fallback: attempt direct Firestore write to progress collection (project default)
+                    console.warn('[ChemistryCraft] DiscoveryService unavailable, falling back to direct Firestore write');
+                    const db = window.firebase.firestore();
+                    await db.collection('progress').doc(currentUser.uid).set({ discoveries }, { merge: true });
+                    this.showToast('Discoveries saved to cloud!');
+                }
             } catch (error) {
-                console.error('[ChemistryCraft] Error saving to Firebase:', error);
+                console.error('[ChemistryCraft] Error saving to cloud via DiscoveryService or Firestore:', error);
                 this.showToast('Failed to save discovery to cloud', true);
-                // Save to pending if Firebase save fails
+                // Save to pending if cloud save fails
                 if (!isPending) {
                     discoveries.forEach(d => this.addDiscoveryToUI(d, true));
-                    this.saveDiscoveries(true);
+                    // Ensure pending local save is user-specific
+                    await this.saveDiscoveries(true);
                 }
             }
         }
