@@ -147,23 +147,43 @@ const ChemistryCraft = {
     init() {
         console.log('[ChemistryCraft] Initializing...');
         
-        // Get UI elements
+        // Get UI elements with detailed validation
         this.elementGrid = document.getElementById('elementGrid');
-        this.combineBtn = document.getElementById('combineBtn');
-        this.resultArea = document.getElementById('resultArea');
-        this.discoveriesList = document.getElementById('discoveriesList');
-        this.pendingDiscoveriesList = document.getElementById('pendingDiscoveriesList');
-        this.searchInput = document.getElementById('elementSearch');
-
-        // Verify UI elements exist
-        if (!this.elementGrid || !this.combineBtn || !this.resultArea || !this.searchInput) {
-            console.error('[ChemistryCraft] Missing required UI elements');
+        if (!this.elementGrid) {
+            console.error('[ChemistryCraft] Missing element grid');
             return false;
         }
 
-        // Verify discoveries lists exist
-        if (!this.discoveriesList || !this.pendingDiscoveriesList) {
-            console.error('[ChemistryCraft] Missing discoveries lists');
+        this.combineBtn = document.getElementById('combineBtn');
+        if (!this.combineBtn) {
+            console.error('[ChemistryCraft] Missing combine button');
+            return false;
+        }
+
+        this.resultArea = document.getElementById('resultArea');
+        if (!this.resultArea) {
+            console.error('[ChemistryCraft] Missing result area');
+            return false;
+        }
+
+        this.searchInput = document.getElementById('elementSearch');
+        if (!this.searchInput) {
+            console.error('[ChemistryCraft] Missing search input');
+            return false;
+        }
+
+        // Get or create discoveries list
+        this.discoveriesList = document.getElementById('discoveriesList');
+        if (!this.discoveriesList) {
+            console.log('[ChemistryCraft] Creating discoveries list');
+            this.discoveriesList = document.createElement('div');
+            this.discoveriesList.id = 'discoveriesList';
+            this.discoveriesList.className = 'discoveries-list';
+            document.querySelector('.discoveries-container')?.appendChild(this.discoveriesList);
+        }
+
+        if (!this.discoveriesList) {
+            console.error('[ChemistryCraft] Could not find or create discoveries list');
             return false;
         }
 
@@ -383,118 +403,207 @@ const ChemistryCraft = {
         }, 100);
     },
 
-    // Load saved discoveries
-    async loadSavedDiscoveries() {
-        console.log('[ChemistryCraft] Loading saved discoveries...');
+    // Migrate pending discoveries to cloud storage when user signs in
+    async migratePendingDiscoveries(currentUser) {
+        if (!currentUser?.uid) return;
+        
         try {
-            // Clear existing lists
+            console.log('[ChemistryCraft] Migrating pending discoveries...');
+            const pendingKey = `chemulab_pending_discoveries`;
+            const pendingRaw = localStorage.getItem(pendingKey);
+            
+            if (!pendingRaw) {
+                console.log('[ChemistryCraft] No pending discoveries to migrate');
+                return;
+            }
+
+            const pendingDiscoveries = JSON.parse(pendingRaw);
+            if (!Array.isArray(pendingDiscoveries) || !pendingDiscoveries.length) {
+                localStorage.removeItem(pendingKey);
+                return;
+            }
+
+            // Get existing cloud discoveries to check for duplicates
+            const db = window.firebase.firestore();
+            const progressDoc = await db.collection('progress').doc(currentUser.uid).get();
+            const existingData = progressDoc.exists ? progressDoc.data() : null;
+            const existingDiscoveries = (existingData?.discoveries || []);
+
+            // Deduplicate pending discoveries
+            const seenCombos = new Set(existingDiscoveries.map(d => d.combination?.sort().join('+')));
+            const newDiscoveries = pendingDiscoveries.filter(d => {
+                const combo = d.combination?.sort().join('+');
+                if (seenCombos.has(combo)) return false;
+                seenCombos.add(combo);
+                return true;
+            });
+
+            if (newDiscoveries.length) {
+                // Merge with existing and save
+                const allDiscoveries = [...existingDiscoveries, ...newDiscoveries];
+                await db.collection('progress').doc(currentUser.uid).set({
+                    discoveries: allDiscoveries,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                console.log(`[ChemistryCraft] Migrated ${newDiscoveries.length} discoveries to cloud`);
+            }
+
+            // Clear pending discoveries since they're now in cloud
+            localStorage.removeItem(pendingKey);
+            
+        } catch (error) {
+            console.warn('[ChemistryCraft] Failed to migrate pending discoveries:', error);
+        }
+    },
+
+    // Load saved discoveries from cloud
+    async loadSavedDiscoveries() {
+        // Validate environment
+        if (!window.firebase?.auth) {
+            console.error('[ChemistryCraft] Firebase Auth not available');
+            return;
+        }
+
+        if (!window.firebase?.firestore) {
+            console.error('[ChemistryCraft] Firestore not available');
+            return;
+        }
+
+        if (!this.discoveriesList) {
+            console.error('[ChemistryCraft] No discoveries list container found');
+            return;
+        }
+
+        try {
+            // Clear existing list
             this.discoveriesList.innerHTML = '';
-            this.pendingDiscoveriesList.innerHTML = '';
             
-            const currentUser = window.firebase?.auth()?.currentUser;
-            const userId = currentUser?.uid || 'offline';
-            
-            // If user is logged in, load from Firebase first
-            if (currentUser) {
-                try {
-                    const db = window.firebase.firestore();
-                    const userRef = db.collection('users').doc(currentUser.uid);
-                    const discoverySnapshot = await userRef.collection('discoveries').get();
-                    
-                    if (!discoverySnapshot.empty) {
-                        const firebaseDiscoveries = [];
-                        discoverySnapshot.forEach(doc => {
-                            firebaseDiscoveries.push(doc.data());
-                        });
-                        
-                        firebaseDiscoveries.forEach(element => {
-                            this.addDiscoveryToUI(element, false);
-                        });
-                        // Update localStorage to match Firebase
-                        localStorage.setItem(`chemulab_discoveries_${userId}`, JSON.stringify(firebaseDiscoveries));
-                    }
-                } catch (firebaseError) {
-                    console.error('[ChemistryCraft] Firebase load error:', firebaseError);
-                    this.showToast('Error loading discoveries from cloud', true);
-                }
+            // Get current user
+            const currentUser = window.firebase.auth().currentUser;
+            if (!currentUser?.uid) {
+                console.log('[ChemistryCraft] No authenticated user');
+                this.showToast('Please sign in to see your discoveries');
+                return;
             }
             
-            // Load from localStorage if no Firebase data or not logged in
-            if (this.discoveriesList.children.length === 0) {
-                const savedDiscoveries = localStorage.getItem(`chemulab_discoveries_${userId}`);
-                if (savedDiscoveries) {
-                    const discoveries = JSON.parse(savedDiscoveries);
-                    discoveries.forEach(element => {
-                        this.addDiscoveryToUI(element, false);
-                    });
-                }
-            }
+            console.log('[ChemistryCraft] Loading discoveries for:', currentUser.uid);
+            const db = window.firebase.firestore();
+            const userDoc = db.collection('progress').doc(currentUser.uid);
+            const doc = await userDoc.get();
             
-            // Always load pending discoveries for current user
-            const pendingDiscoveries = localStorage.getItem(`chemulab_pending_${userId}`);
-            if (pendingDiscoveries) {
-                const discoveries = JSON.parse(pendingDiscoveries);
-                discoveries.forEach(element => {
-                    this.addDiscoveryToUI(element, true);
+            // Initialize empty discoveries array if document doesn't exist
+            if (!doc.exists) {
+                console.log('[ChemistryCraft] Creating initial discoveries document');
+                await userDoc.set({
+                    discoveries: [],
+                    created: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
                 });
+                return;
             }
+            
+            const data = doc.data();
+            // Initialize discoveries array if it doesn't exist
+            if (!Array.isArray(data?.discoveries)) {
+                console.log('[ChemistryCraft] Initializing discoveries array');
+                await userDoc.set({
+                    discoveries: [],
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                return;
+            }
+
+            // Process and display each discovery
+            let loadedCount = 0;
+            for (const discovery of data.discoveries) {
+                if (discovery?.symbol && discovery?.name) {
+                    this.addDiscoveryToUI({
+                        symbol: discovery.symbol,
+                        name: discovery.name,
+                        dateDiscovered: discovery.dateDiscovered || new Date().toISOString()
+                    });
+                    loadedCount++;
+                } else {
+                    console.warn('[ChemistryCraft] Skipping invalid discovery:', discovery);
+                }
+            }
+            
+            console.log(`[ChemistryCraft] Successfully loaded ${loadedCount} discoveries`);
+            if (loadedCount > 0) {
+                this.showToast(`Loaded ${loadedCount} discoveries`);
+            }
+
         } catch (error) {
             console.error('[ChemistryCraft] Error loading discoveries:', error);
+            this.showToast('Failed to load discoveries. Please try again.', true);
         }
     },
 
     // Save discoveries to storage
-    async saveDiscoveries(isPending = false) {
-        const currentUser = window.firebase?.auth()?.currentUser;
-        const userId = currentUser?.uid || 'offline';
-        const key = `chemulab_${isPending ? 'pending' : 'discoveries'}_${userId}`;
-        const list = isPending ? this.pendingDiscoveriesList : this.discoveriesList;
-        const discoveries = [];
-        
-        list.querySelectorAll('.discovery-item').forEach(item => {
-            discoveries.push({
-                symbol: item.querySelector('.element-symbol').textContent,
-                name: item.querySelector('.element-name').textContent,
-                timestamp: new Date().toISOString()
-            });
-        });
+    async saveDiscoveries() {
+        // Validate environment
+        if (!window.firebase?.auth) {
+            console.error('[ChemistryCraft] Firebase Auth not available');
+            return;
+        }
 
-        // Always save to user-specific localStorage for offline access
-        localStorage.setItem(key, JSON.stringify(discoveries));
+        if (!window.firebase?.firestore) {
+            console.error('[ChemistryCraft] Firestore not available');
+            return;
+        }
 
-        // If we're not in pending mode and we have a logged-in user, save via DiscoveryService
-        if (!isPending && currentUser) {
-            try {
-                console.log('[ChemistryCraft] Delegating save to DiscoveryService for user:', currentUser.uid);
-                // Build minimal userData object expected by DiscoveryService
-                const username = currentUser.email || currentUser.uid;
-                const userData = {
-                    credentials: { username },
-                    discoveries: discoveries.map(d => ({ id: String(d.symbol), symbol: d.symbol, name: d.name, dateDiscovered: d.timestamp }))
-                };
+        if (!this.discoveriesList) {
+            console.error('[ChemistryCraft] No discoveries list container found');
+            return;
+        }
 
-                // Use the project's DiscoveryService to perform the save (handles Firebase rules/collection)
-                if (typeof DiscoveryService !== 'undefined' && DiscoveryService.saveUserData) {
-                    await DiscoveryService.saveUserData(username, userData);
-                    console.log('[ChemistryCraft] DiscoveryService.saveUserData completed');
-                    this.showToast('Discoveries saved to cloud!');
-                } else {
-                    // Fallback: attempt direct Firestore write to progress collection (project default)
-                    console.warn('[ChemistryCraft] DiscoveryService unavailable, falling back to direct Firestore write');
-                    const db = window.firebase.firestore();
-                    await db.collection('progress').doc(currentUser.uid).set({ discoveries }, { merge: true });
-                    this.showToast('Discoveries saved to cloud!');
-                }
-            } catch (error) {
-                console.error('[ChemistryCraft] Error saving to cloud via DiscoveryService or Firestore:', error);
-                this.showToast('Failed to save discovery to cloud', true);
-                // Save to pending if cloud save fails
-                if (!isPending) {
-                    discoveries.forEach(d => this.addDiscoveryToUI(d, true));
-                    // Ensure pending local save is user-specific
-                    await this.saveDiscoveries(true);
-                }
+        try {
+            // Check for authenticated user
+            const currentUser = window.firebase.auth().currentUser;
+            if (!currentUser?.uid) {
+                console.warn('[ChemistryCraft] No authenticated user');
+                this.showToast('Please sign in to save discoveries', true);
+                return;
             }
+
+            // Collect discoveries from UI
+            const discoveries = Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
+                .map(item => ({
+                    symbol: item.querySelector('.element-symbol')?.textContent || '',
+                    name: item.querySelector('.element-name')?.textContent || '',
+                    dateDiscovered: new Date().toISOString()
+                }))
+                .filter(d => d.symbol && d.name);
+
+            console.log('[ChemistryCraft] Preparing to save discoveries:', discoveries);
+
+            // Save to Firestore
+            const db = window.firebase.firestore();
+            const userDoc = db.collection('progress').doc(currentUser.uid);
+
+            // Get existing document or create new one
+            const doc = await userDoc.get();
+            if (!doc.exists) {
+                console.log('[ChemistryCraft] Creating new progress document');
+                await userDoc.set({
+                    discoveries: discoveries,
+                    created: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                });
+            } else {
+                console.log('[ChemistryCraft] Updating existing progress document');
+                await userDoc.set({
+                    discoveries: discoveries,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+            }
+
+            console.log(`[ChemistryCraft] Successfully saved ${discoveries.length} discoveries`);
+            this.showToast(`${discoveries.length} discoveries saved!`);
+
+        } catch (error) {
+            console.error('[ChemistryCraft] Error saving discoveries:', error);
+            this.showToast('Failed to save discoveries. Please try again.', true);
         }
     },
 
@@ -585,45 +694,67 @@ const ChemistryCraft = {
 
     // Add a discovery
     addDiscovery(element) {
+        if (!element?.symbol || !element?.name) {
+            console.error('[ChemistryCraft] Invalid element:', element);
+            return;
+        }
+
         // Check if already discovered
         if (this.hasDiscovery(element)) {
             console.log('[ChemistryCraft] Already discovered:', element.name);
             return;
         }
 
-        // Add to appropriate list
-        const isPending = !window.firebase || !window.firebase.auth || !window.firebase.auth().currentUser;
-        this.addDiscoveryToUI(element, isPending);
+        // Require authentication
+        if (!window.firebase?.auth()?.currentUser) {
+            console.warn('[ChemistryCraft] Cannot add discovery: Not signed in');
+            this.showToast('Please sign in to save discoveries!', true);
+            return;
+        }
 
-        // Save to storage
-        this.saveDiscoveries(isPending);
+        // Add to UI and save
+        this.addDiscoveryToUI(element);
+        this.saveDiscoveries();
     },
 
     // Add discovery to UI
-    addDiscoveryToUI(element, isPending = false) {
-        const discoveryItem = document.createElement('div');
-        discoveryItem.className = 'discovery-item';
-        discoveryItem.innerHTML = `
-            <span class="element-symbol">${element.symbol}</span>
-            <span class="element-name">${element.name}</span>
-        `;
-        
-        if (isPending) {
-            this.pendingDiscoveriesList.appendChild(discoveryItem);
-        } else {
+    addDiscoveryToUI(element) {
+        if (!this.discoveriesList) {
+            console.error('[ChemistryCraft] No discoveries list available');
+            return;
+        }
+
+        try {
+            const discoveryItem = document.createElement('div');
+            discoveryItem.className = 'discovery-item';
+            discoveryItem.innerHTML = `
+                <span class="element-symbol">${element.symbol || ''}</span>
+                <span class="element-name">${element.name || ''}</span>
+            `;
+            
             this.discoveriesList.appendChild(discoveryItem);
+            console.log('[ChemistryCraft] Added discovery to UI:', element.symbol);
+        } catch (error) {
+            console.error('[ChemistryCraft] Failed to add discovery to UI:', error);
         }
     },
 
     // Check if element is already discovered
     hasDiscovery(element) {
-        const checkList = (list) => {
-            return Array.from(list.querySelectorAll('.discovery-item')).some(item => 
-                item.querySelector('.element-symbol').textContent === element.symbol
-            );
-        };
+        if (!this.discoveriesList || !element?.symbol) {
+            return false;
+        }
 
-        return checkList(this.discoveriesList) || checkList(this.pendingDiscoveriesList);
+        try {
+            return Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
+                .some(item => {
+                    const symbolElement = item.querySelector('.element-symbol');
+                    return symbolElement?.textContent === element.symbol;
+                });
+        } catch (error) {
+            console.error('[ChemistryCraft] Error checking discovery:', error);
+            return false;
+        }
     }
 };
 
@@ -637,15 +768,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Set up Firebase-dependent features when ready
-    window.addEventListener('firebaseReady', () => {
-        console.log('[ChemistryCraft] Firebase ready, setting up auth features...');
+    // Handle both immediate and future Firebase initialization
+    const setupFirebase = () => {
+        if (!window.firebase?.auth) {
+            console.warn('[ChemistryCraft] Firebase Auth not available');
+            return;
+        }
 
-        // Listen for auth state changes
-        firebase.auth().onAuthStateChanged(user => {
-            console.log('[ChemistryCraft] Auth state changed:', user ? 'User logged in' : 'No user');
-            // Reload discoveries when auth state changes
-            ChemistryCraft.loadSavedDiscoveries();
+        console.log('[ChemistryCraft] Setting up Firebase auth listener...');
+        window.firebase.auth().onAuthStateChanged(async user => {
+            console.log('[ChemistryCraft] Auth state changed:', user ? `User logged in: ${user.uid}` : 'No user');
+            
+            if (user?.uid) {
+                console.log('[ChemistryCraft] Loading discoveries for user:', user.uid);
+                await ChemistryCraft.loadSavedDiscoveries();
+            } else {
+                // Clear discoveries when user signs out
+                if (ChemistryCraft.discoveriesList) {
+                    ChemistryCraft.discoveriesList.innerHTML = '';
+                }
+            }
         });
+    };
+
+    // Try immediate setup if Firebase is already initialized
+    if (window.firebase?.auth) {
+        setupFirebase();
+    }
+
+    // Also listen for future Firebase initialization
+    window.addEventListener('firebaseReady', () => {
+        console.log('[ChemistryCraft] Firebase ready event received');
+        setupFirebase();
     });
 });
