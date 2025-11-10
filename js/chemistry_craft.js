@@ -272,17 +272,163 @@ const ChemistryCraft = {
         // Combine button
         this.combineBtn.addEventListener('click', () => this.combineElements());
 
-        // Setup drag and drop for crafting slots
-        ['slot1', 'slot2'].forEach(slotId => {
-            const slot = document.getElementById(slotId);
-            if (slot) {
-                slot.addEventListener('dragover', this.handleDragOver.bind(this));
-                slot.addEventListener('drop', this.handleDrop.bind(this));
-                slot.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        // Floating modal controls (visible anywhere on the page)
+        try {
+            // Remove any existing floating toggle button (we no longer use the fixed plus button)
+            let toggle = document.getElementById('discoveriesToggleBtn');
+            if (toggle) {
+                try { toggle.remove(); } catch (e) { /* ignore */ }
             }
-        });
+            toggle = null;
 
-        // Setup drag and drop handlers
+            // Modal backdrop
+            let backdrop = document.getElementById('discoveriesModalBackdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.id = 'discoveriesModalBackdrop';
+                backdrop.className = 'discoveries-modal-backdrop';
+                backdrop.style.display = 'none';
+                document.body.appendChild(backdrop);
+            }
+
+            // Modal dialog
+            let modal = document.getElementById('discoveriesModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'discoveriesModal';
+                modal.className = 'discoveries-modal';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+
+                modal.innerHTML = `
+                    <div class="discoveries-modal-header">
+                        <h3>Discoveries</h3>
+                        <button class="discoveries-modal-close icon-btn" type="button" aria-label="Close discoveries dialog">&times;</button>
+                    </div>
+                    <div class="discoveries-modal-body">
+                        <div class="discoveries-controls modal-controls">
+                            <!-- controls appended by JS -->
+                        </div>
+                    </div>
+                `;
+
+                modal.style.display = 'none';
+                document.body.appendChild(modal);
+            }
+
+            // Put controls into the discoveries panel so they're rendered as the last element (very bottom)
+            const controlsParent = document.querySelector('.discoveries-container') || document.querySelector('.discoveries-panel') || document.querySelector('.lab-interface') || document.querySelector('main') || document.body;
+            let controls = controlsParent.querySelector('.discoveries-controls.main-controls');
+            if (!controls) {
+                controls = document.createElement('div');
+                controls.className = 'discoveries-controls main-controls';
+
+                // Prefer appending into the actual discoveries panel that contains the discoveriesList
+                let panelEl = null;
+                if (this.discoveriesList) {
+                    panelEl = this.discoveriesList.closest('.discoveries-panel, .discoveries-container');
+                }
+
+                if (panelEl) {
+                    // append as last child so it appears at the very bottom of the panel (blue area)
+                    panelEl.appendChild(controls);
+                } else if (this.discoveriesList && this.discoveriesList.parentElement === controlsParent) {
+                    // fallback: insert after discoveriesList
+                    controlsParent.insertBefore(controls, this.discoveriesList.nextSibling);
+                } else {
+                    // fallback: append to the chosen parent container
+                    controlsParent.appendChild(controls);
+                }
+            }
+
+            // Export button (create or move existing)
+            let exportBtn = document.getElementById('exportDiscoveriesBtn');
+            if (!exportBtn) {
+                exportBtn = document.createElement('button');
+                exportBtn.id = 'exportDiscoveriesBtn';
+                exportBtn.className = 'icon-btn export-btn';
+                exportBtn.type = 'button';
+                exportBtn.title = 'Export discoveries';
+                exportBtn.setAttribute('aria-label', 'Export discoveries');
+                exportBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8 7l4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>`;
+            }
+            // Move into main controls if not already
+            if (exportBtn.parentElement !== controls) controls.appendChild(exportBtn);
+
+            exportBtn.removeEventListener?.('click', null);
+            exportBtn.addEventListener('click', async () => {
+                await this.exportDiscoveries();
+            });
+
+            // Import input + label (create or move existing)
+            let importInput = document.getElementById('importDiscoveriesInput');
+            if (!importInput) {
+                importInput = document.createElement('input');
+                importInput.type = 'file';
+                importInput.accept = 'application/json';
+                importInput.id = 'importDiscoveriesInput';
+                importInput.style.display = 'none';
+            }
+            if (importInput.parentElement !== controls) controls.appendChild(importInput);
+
+            // Try to find an existing import label inside the controls parent first
+            let importLabel = controls.querySelector('.import-label') || controlsParent.querySelector('.import-label');
+            if (!importLabel) {
+                importLabel = document.createElement('label');
+                importLabel.htmlFor = 'importDiscoveriesInput';
+                importLabel.className = 'import-label icon-btn';
+                importLabel.title = 'Import discoveries';
+                importLabel.setAttribute('aria-label', 'Import discoveries');
+                importLabel.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 13l-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>`;
+            }
+            if (importLabel.parentElement !== controls) controls.appendChild(importLabel);
+
+            importInput.removeEventListener?.('change', null);
+            importInput.addEventListener('change', async (ev) => {
+                const file = ev.target.files && ev.target.files[0];
+                if (!file) return;
+                await this.importDiscoveriesFromFile(file);
+                importInput.value = '';
+            });
+
+            // Open/close behaviors
+            const openModal = () => {
+                backdrop.style.display = 'block';
+                modal.style.display = 'block';
+                // small delay for CSS transitions if present
+                setTimeout(() => modal.classList.add('open'), 10);
+                setTimeout(() => backdrop.classList.add('open'), 10);
+            };
+
+            const closeModal = () => {
+                modal.classList.remove('open');
+                backdrop.classList.remove('open');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    backdrop.style.display = 'none';
+                }, 200);
+            };
+
+            // Floating toggle removed; keep modal/backdrop open/close handlers
+            backdrop.addEventListener('click', closeModal);
+            modal.querySelector('.discoveries-modal-close')?.addEventListener('click', closeModal);
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+        } catch (e) {
+            console.warn('[ChemistryCraft] Failed to add floating modal controls:', e);
+        }
+
+        // Setup drag and drop for crafting slots (single registration)
         ['slot1', 'slot2'].forEach(slotId => {
             const slot = document.getElementById(slotId);
             if (slot) {
@@ -492,13 +638,8 @@ const ChemistryCraft = {
     // Load saved discoveries from cloud
     async loadSavedDiscoveries() {
         // Validate environment
-        if (!window.firebase?.auth) {
-            console.error('[ChemistryCraft] Firebase Auth not available');
-            return;
-        }
-
-        if (!window.firebase?.firestore) {
-            console.error('[ChemistryCraft] Firestore not available');
+        if (!window.firebase || !window.firebase.auth || !window.firebase.firestore) {
+            console.error('[ChemistryCraft] Firebase not available (auth/firestore required)');
             return;
         }
 
@@ -508,9 +649,9 @@ const ChemistryCraft = {
         }
 
         try {
-            // Clear existing list
+            // Clear existing UI first (don't write to Firestore here)
             this.discoveriesList.innerHTML = '';
-            
+
             // Get current user
             const currentUser = window.firebase.auth().currentUser;
             if (!currentUser?.uid) {
@@ -518,31 +659,37 @@ const ChemistryCraft = {
                 this.showToast('Please sign in to see your discoveries');
                 return;
             }
-            
+
             console.log('[ChemistryCraft] Loading discoveries for:', currentUser.uid);
             const db = window.firebase.firestore();
-            const userDoc = db.collection('progress').doc(currentUser.uid);
-            const doc = await userDoc.get();
-            
-            // Try to load from multiple sources
+            const userDocRef = db.collection('progress').doc(currentUser.uid);
+
+            // Try to read from progress collection
             let discoveries = [];
-            
-            // 1. Try progress collection
-            if (doc.exists && Array.isArray(doc.data()?.discoveries)) {
-                discoveries = doc.data().discoveries;
-                console.log('[ChemistryCraft] Loaded from progress collection:', discoveries.length);
+            try {
+                const doc = await userDocRef.get();
+                if (doc.exists && Array.isArray(doc.data()?.discoveries)) {
+                    discoveries = doc.data().discoveries;
+                    console.log('[ChemistryCraft] Loaded from progress collection:', discoveries.length);
+                }
+            } catch (err) {
+                console.warn('[ChemistryCraft] Error reading progress doc (will try fallback sources):', err);
             }
-            
-            // 2. If no discoveries, try discoveries collection
+
+            // If none found, try discoveries collection
             if (discoveries.length === 0) {
-                const discoveryDoc = await db.collection('discoveries').doc(currentUser.uid).get();
-                if (discoveryDoc.exists && Array.isArray(discoveryDoc.data()?.discoveries)) {
-                    discoveries = discoveryDoc.data().discoveries;
-                    console.log('[ChemistryCraft] Loaded from discoveries collection:', discoveries.length);
+                try {
+                    const discoveryDoc = await db.collection('discoveries').doc(currentUser.uid).get();
+                    if (discoveryDoc.exists && Array.isArray(discoveryDoc.data()?.discoveries)) {
+                        discoveries = discoveryDoc.data().discoveries;
+                        console.log('[ChemistryCraft] Loaded from discoveries collection:', discoveries.length);
+                    }
+                } catch (err) {
+                    console.warn('[ChemistryCraft] Error reading discoveries doc:', err);
                 }
             }
-            
-            // 3. If still no discoveries, try local storage backup
+
+            // If still none, try local storage backup — but DO NOT auto-write an empty array to Firestore.
             if (discoveries.length === 0) {
                 const localBackup = localStorage.getItem('chemulab_discoveries_backup_' + currentUser.uid);
                 if (localBackup) {
@@ -551,41 +698,38 @@ const ChemistryCraft = {
                         if (Array.isArray(backupData) && backupData.length > 0) {
                             discoveries = backupData;
                             console.log('[ChemistryCraft] Loaded from local backup:', discoveries.length);
-                            
-                            // Save recovered data back to Firestore
-                            await userDoc.set({
-                                discoveries: discoveries,
-                                restored: true,
-                                restoredFrom: 'local_backup',
-                                lastUpdated: new Date().toISOString()
-                            });
+
+                            // Optionally restore recovered data back to Firestore, but do it carefully (merge)
+                            try {
+                                await userDocRef.set({
+                                    discoveries: discoveries,
+                                    restored: true,
+                                    restoredFrom: 'local_backup',
+                                    lastUpdated: new Date().toISOString()
+                                }, { merge: true });
+                                console.log('[ChemistryCraft] Restored backup to Firestore (merged)');
+                            } catch (e) {
+                                console.warn('[ChemistryCraft] Failed to restore backup to Firestore:', e);
+                            }
                         }
                     } catch (e) {
                         console.error('[ChemistryCraft] Error parsing local backup:', e);
                     }
+                } else {
+                    console.log('[ChemistryCraft] No cloud discoveries and no local backup found — not overwriting cloud data');
                 }
             }
-            
-            // If we still have no discoveries, initialize with empty array
+
+            // If still nothing, do not auto-create/overwrite the user's document with an empty discoveries array.
             if (discoveries.length === 0) {
-                console.log('[ChemistryCraft] No discoveries found in any source, initializing empty array');
-                await userDoc.set({
-                    discoveries: [],
-                    created: new Date().toISOString(),
-                    lastUpdated: new Date().toISOString()
-                });
+                console.log('[ChemistryCraft] No discoveries found in any source (skipping automatic initialization to avoid overwriting existing data).');
                 return;
             }
 
-            // Clear existing UI first
-            while (this.discoveriesList.firstChild) {
-                this.discoveriesList.removeChild(this.discoveriesList.firstChild);
-            }
-            
-            // Process and display each discovery
+            // Display discoveries (dedupe by symbol)
             let loadedCount = 0;
             const seenSymbols = new Set();
-            
+
             for (const discovery of discoveries) {
                 if (discovery?.symbol && discovery?.name && !seenSymbols.has(discovery.symbol)) {
                     seenSymbols.add(discovery.symbol);
@@ -596,7 +740,7 @@ const ChemistryCraft = {
                     });
                     loadedCount++;
                 } else {
-                    console.warn('[ChemistryCraft] Skipping invalid discovery:', discovery);
+                    console.warn('[ChemistryCraft] Skipping invalid or duplicate discovery:', discovery);
                 }
             }
             
@@ -611,35 +755,29 @@ const ChemistryCraft = {
         }
     },
 
-    // Save discoveries to storage
+    // Save discoveries to storage with verification and auto-recovery
     async saveDiscoveries() {
         // Validate environment
         if (!window.firebase?.auth) {
             console.error('[ChemistryCraft] Firebase Auth not available');
-            return;
+            return false;
         }
 
         if (!window.firebase?.firestore) {
             console.error('[ChemistryCraft] Firestore not available');
-            return;
+            return false;
         }
 
         if (!this.discoveriesList) {
             console.error('[ChemistryCraft] No discoveries list container found');
-            return;
+            return false;
         }
 
-        // Also save to local storage as backup
-        const saveToLocal = (discoveries) => {
-            try {
-                const user = firebase.auth().currentUser;
-                if (user) {
-                    localStorage.setItem('chemulab_discoveries_backup_' + user.uid, JSON.stringify(discoveries));
-                }
-            } catch (e) {
-                console.error('[ChemistryCraft] Failed to save local backup:', e);
-            }
-        };
+        // Create immediate backup before saving
+        const backupSuccess = await this.createBackup(true);
+        if (!backupSuccess) {
+            console.warn('[ChemistryCraft] Failed to create backup before save');
+        }
 
         try {
             // Check for authenticated user
@@ -697,14 +835,29 @@ const ChemistryCraft = {
                 }
             });
 
-            // Add new discoveries (these take precedence)
+            // Add new discoveries with conflict-resolution by lastUpdated (newer wins)
             discoveries.forEach(d => {
-                if (d && d.symbol) {
-                    discoveryMap.set(d.symbol, {
-                        ...d,
-                        dateDiscovered: d.dateDiscovered || new Date().toISOString(),
-                        lastUpdated: new Date().toISOString()
-                    });
+                if (!(d && d.symbol)) return;
+
+                const existing = discoveryMap.get(d.symbol);
+                const newEntry = {
+                    ...d,
+                    dateDiscovered: d.dateDiscovered || new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                };
+
+                if (!existing) {
+                    discoveryMap.set(d.symbol, newEntry);
+                } else {
+                    try {
+                        const existTime = new Date(existing.lastUpdated).getTime();
+                        const newTime = new Date(newEntry.lastUpdated).getTime();
+                        if (isNaN(existTime) || newTime >= existTime) {
+                            discoveryMap.set(d.symbol, newEntry);
+                        } // else keep existing
+                    } catch (e) {
+                        discoveryMap.set(d.symbol, newEntry);
+                    }
                 }
             });
 
@@ -943,16 +1096,43 @@ const ChemistryCraft = {
             .filter(d => d.symbol && d.name);
     },
 
-    // Create a backup of current discoveries
-    async createBackup() {
-        const user = firebase.auth().currentUser;
+    // Create a backup of current discoveries with versioning
+    async createBackup(force = false) {
+        const user = window.firebase?.auth?.currentUser;
         if (!user) return;
         
         const discoveries = await this.getDiscoveries();
-        if (discoveries && discoveries.length > 0) {
-            localStorage.setItem('chemulab_discoveries_backup_' + user.uid, 
-                JSON.stringify(discoveries));
-            console.log('[ChemistryCraft] Created backup of', discoveries.length, 'discoveries');
+        if (!discoveries || discoveries.length === 0) return;
+
+        try {
+            // Store current backup
+            const backupKey = `chemulab_discoveries_backup_${user.uid}`;
+            localStorage.setItem(backupKey, JSON.stringify(discoveries));
+            
+            // Store a daily backup
+            const now = new Date();
+            const dailyBackupKey = `chemulab_discoveries_backup_${user.uid}_${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
+            
+            // Only create daily backup if it doesn't exist or forced
+            if (force || !localStorage.getItem(dailyBackupKey)) {
+                localStorage.setItem(dailyBackupKey, JSON.stringify(discoveries));
+                console.log('[ChemistryCraft] Created daily backup:', dailyBackupKey);
+            }
+            
+            // Store a weekly backup
+            const weeklyBackupKey = `chemulab_discoveries_backup_${user.uid}_${now.getFullYear()}_${now.getMonth()}_${Math.floor(now.getDate()/7)}`;
+            
+            // Only create weekly backup if it doesn't exist or forced
+            if (force || !localStorage.getItem(weeklyBackupKey)) {
+                localStorage.setItem(weeklyBackupKey, JSON.stringify(discoveries));
+                console.log('[ChemistryCraft] Created weekly backup:', weeklyBackupKey);
+            }
+            
+            console.log('[ChemistryCraft] Created backups of', discoveries.length, 'discoveries');
+            return true;
+        } catch (error) {
+            console.error('[ChemistryCraft] Backup creation failed:', error);
+            return false;
         }
     },
 
@@ -987,10 +1167,182 @@ const ChemistryCraft = {
             console.error('[ChemistryCraft] Error restoring from backup:', e);
             return false;
         }
-    }
+    },
+
+    // Export current discoveries as a downloadable JSON file
+    async exportDiscoveries() {
+        try {
+            const user = window.firebase?.auth?.currentUser;
+            const discoveries = await this.getDiscoveries();
+            if (!discoveries || discoveries.length === 0) {
+                this.showToast('No discoveries to export', true);
+                return false;
+            }
+
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                uid: user?.uid || null,
+                discoveries: discoveries
+            };
+
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            a.download = `chemulab_discoveries_${user?.uid || 'anon'}_${stamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            this.showToast('Discoveries exported');
+            return true;
+        } catch (err) {
+            console.error('[ChemistryCraft] Export failed:', err);
+            this.showToast('Export failed', true);
+            return false;
+        }
+    },
+
+    // Import discoveries from a File or parsed JSON object
+    async importDiscoveriesFromFile(fileOrJson) {
+        try {
+            let parsed = null;
+
+            if (typeof fileOrJson === 'string') {
+                parsed = JSON.parse(fileOrJson);
+            } else if (fileOrJson instanceof File) {
+                parsed = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(JSON.parse(reader.result));
+                    reader.onerror = () => reject(new Error('File read error'));
+                    reader.readAsText(fileOrJson);
+                });
+            } else if (fileOrJson && typeof fileOrJson === 'object') {
+                parsed = fileOrJson;
+            }
+
+            if (!parsed) throw new Error('No data parsed');
+
+            const discoveries = Array.isArray(parsed.discoveries) ? parsed.discoveries : (Array.isArray(parsed) ? parsed : null);
+            if (!discoveries || discoveries.length === 0) {
+                this.showToast('Imported file contains no discoveries', true);
+                return false;
+            }
+
+            // Validate items
+            const valid = discoveries.filter(d => d && d.symbol && d.name).map(d => ({
+                symbol: d.symbol,
+                name: d.name,
+                dateDiscovered: d.dateDiscovered || new Date().toISOString(),
+                lastUpdated: d.lastUpdated || d.dateDiscovered || new Date().toISOString()
+            }));
+
+            if (!valid.length) {
+                this.showToast('No valid discoveries to import', true);
+                return false;
+            }
+
+            // Merge using conflict-resolution rule
+            await this.resolveAndMergeDiscoveries(valid);
+            this.showToast(`Imported ${valid.length} discoveries`);
+            return true;
+        } catch (err) {
+            console.error('[ChemistryCraft] Import failed:', err);
+            this.showToast('Import failed. See console.', true);
+            return false;
+        }
+    },
+
+    // Merge imported discoveries intelligently with cloud/local using lastUpdated timestamps
+    async resolveAndMergeDiscoveries(importedDiscoveries) {
+        if (!Array.isArray(importedDiscoveries) || importedDiscoveries.length === 0) return;
+
+        // Normalize imported list into a map by symbol
+        const importMap = new Map();
+        importedDiscoveries.forEach(d => {
+            importMap.set(d.symbol, {
+                symbol: d.symbol,
+                name: d.name,
+                dateDiscovered: d.dateDiscovered || new Date().toISOString(),
+                lastUpdated: d.lastUpdated || new Date().toISOString()
+            });
+        });
+
+        // Load existing cloud and local data to merge
+        const db = window.firebase?.firestore();
+        const user = window.firebase?.auth?.currentUser;
+        if (!user || !db) {
+            // If not signed in, restore to UI only and save to local backup
+            if (!this.discoveriesList) return;
+            // Add to UI
+            importMap.forEach(d => this.addDiscoveryToUI(d));
+            await this.createBackup(true);
+            return;
+        }
+
+        const [progressDoc, discoveryDoc] = await Promise.all([
+            db.collection('progress').doc(user.uid).get().catch(() => null),
+            db.collection('discoveries').doc(user.uid).get().catch(() => null)
+        ]);
+
+        let existing = [];
+        if (progressDoc && progressDoc.exists && Array.isArray(progressDoc.data()?.discoveries)) existing = existing.concat(progressDoc.data().discoveries);
+        if (discoveryDoc && discoveryDoc.exists && Array.isArray(discoveryDoc.data()?.discoveries)) existing = existing.concat(discoveryDoc.data().discoveries);
+
+        const mergedMap = new Map();
+
+        // Put existing into mergedMap
+        existing.forEach(d => {
+            if (!d || !d.symbol) return;
+            mergedMap.set(d.symbol, {
+                symbol: d.symbol,
+                name: d.name,
+                dateDiscovered: d.dateDiscovered || new Date().toISOString(),
+                lastUpdated: d.lastUpdated || d.dateDiscovered || new Date().toISOString()
+            });
+        });
+
+        // Merge imported entries resolving conflicts by newest lastUpdated
+        importMap.forEach((imp, sym) => {
+            const exist = mergedMap.get(sym);
+            if (!exist) {
+                mergedMap.set(sym, imp);
+            } else {
+                try {
+                    const existTime = new Date(exist.lastUpdated).getTime();
+                    const impTime = new Date(imp.lastUpdated).getTime();
+                    if (isNaN(existTime) || impTime >= existTime) {
+                        // Imported is newer or existing invalid -> replace
+                        mergedMap.set(sym, imp);
+                    } // else keep existing
+                } catch (e) {
+                    mergedMap.set(sym, imp);
+                }
+            }
+        });
+
+        const mergedArray = Array.from(mergedMap.values());
+
+        // Update UI to reflect merged set
+        if (this.discoveriesList) this.discoveriesList.innerHTML = '';
+        mergedArray.forEach(d => this.addDiscoveryToUI(d));
+
+        // Save merged results to cloud and local backup
+        try {
+            const saveData = { discoveries: mergedArray, lastUpdated: new Date().toISOString() };
+            await db.collection('progress').doc(user.uid).set(saveData, { merge: true });
+            await db.collection('discoveries').doc(user.uid).set(saveData, { merge: true });
+            localStorage.setItem('chemulab_discoveries_backup_' + user.uid, JSON.stringify(mergedArray));
+            console.log('[ChemistryCraft] Merged and saved imported discoveries:', mergedArray.length);
+        } catch (e) {
+            console.warn('[ChemistryCraft] Failed to save merged discoveries to cloud, saved to local backup only:', e);
+            localStorage.setItem('chemulab_discoveries_backup_' + user.uid, JSON.stringify(mergedArray));
+        }
+    },
 };
 
-// Initialize when DOM is ready
+    // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[ChemistryCraft] DOM ready, initializing basic features...');
     
@@ -1000,7 +1352,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Handle both immediate and future Firebase initialization
+    // Set up periodic backups (every 5 minutes)
+    const BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    setInterval(() => {
+        if (window.firebase?.auth()?.currentUser) {
+            ChemistryCraft.createBackup()
+                .catch(err => console.error('[ChemistryCraft] Periodic backup failed:', err));
+        }
+    }, BACKUP_INTERVAL);
+
+    // Set up data verification timer (every 15 minutes)
+    const VERIFY_INTERVAL = 15 * 60 * 1000; // 15 minutes
+    setInterval(async () => {
+        if (window.firebase?.auth()?.currentUser) {
+            try {
+                const currentDiscoveries = await ChemistryCraft.getDiscoveries();
+                if (currentDiscoveries && currentDiscoveries.length > 0) {
+                    // Verify cloud data matches local
+                    const db = window.firebase.firestore();
+                    const userDoc = await db.collection('progress')
+                        .doc(window.firebase.auth().currentUser.uid)
+                        .get();
+                    
+                    const cloudDiscoveries = userDoc.data()?.discoveries || [];
+                    if (cloudDiscoveries.length !== currentDiscoveries.length) {
+                        console.warn('[ChemistryCraft] Data verification failed - attempting recovery');
+                        await ChemistryCraft.saveDiscoveries();
+                    }
+                }
+            } catch (err) {
+                console.error('[ChemistryCraft] Data verification failed:', err);
+            }
+        }
+    }, VERIFY_INTERVAL);    // Handle both immediate and future Firebase initialization
     const setupFirebase = () => {
         if (!window.firebase?.auth) {
             console.warn('[ChemistryCraft] Firebase Auth not available');
