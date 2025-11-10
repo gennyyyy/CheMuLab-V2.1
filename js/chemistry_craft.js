@@ -424,6 +424,8 @@ const ChemistryCraft = {
             modal.querySelector('.discoveries-modal-close')?.addEventListener('click', closeModal);
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+            // Controls are appended as the last child of the discoveries panel and styled via CSS to sit at the bottom.
+
         } catch (e) {
             console.warn('[ChemistryCraft] Failed to add floating modal controls:', e);
         }

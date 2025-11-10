@@ -287,10 +287,8 @@
     position: static;
     margin-top: 12px;
     margin-bottom: 12px;
-    /* place the controls on the right side of the discoveries panel */
-    align-self: flex-end;
-    justify-content: flex-end;
-    margin-right: 12px;
+    align-self: center;
+    justify-content: center;
 }
 
 /* If the controls are the main fixed controls (fallback), keep them at bottom-right */
@@ -299,14 +297,6 @@
     right: 18px;
     bottom: 18px;
     z-index: 99999;
-}
-
-/* Fixed mode used when the panel is in view: keep control visible and aligned with panel */
-.discoveries-controls.controls-fixed {
-    position: fixed !important;
-    z-index: 12000 !important;
-    bottom: auto !important;
-    /* top and right are set inline by JS for precise alignment */
 }
 
 /* When controls are placed inside the discoveries panel/container we want them to sit below the list
@@ -510,18 +500,4 @@ main #discoveriesToggleBtn:hover { transform: translateY(-3px) scale(1.02); }
     #exportDiscoveriesBtn, #importDiscoveriesInput {
         width: 100%;
     }
-}
-
-/* Strong override: when controls are inside the discoveries panel keep them sticky at the right-bottom
-   This prevents the controls from becoming fixed at the viewport edge and avoids overlapping the panel header. */
-.discoveries-panel .discoveries-controls.main-controls,
-.discoveries-container .discoveries-controls.main-controls {
-    position: -webkit-sticky; /* Safari */
-    position: sticky;
-    bottom: 28px; /* move down a bit from the panel bottom */
-    align-self: flex-end; /* place on the right side */
-    justify-content: flex-end;
-    margin-right: 14px;
-    z-index: 60; /* above panel content */
-    background: rgba(0,0,0,0.42); /* slightly transparent to blend */
 }
