@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheMuLab</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Configuration and Services -->
+    <script src="js/firebase-config.js"></script>
+    <!-- initialize Firebase as soon as config and SDKs are available -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <script src="js/discovery-service.js"></script>
+    <script src="js/firebase-test.js"></script>
+    <script src="js/quick-signin.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <!--<a href="leaderboard.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127942;</div> Leaderboard
+            </a> -->
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <!-- Hero Banner -->
+            <section class="hero">
+                <div style="flex:1;min-width:220px;">
+                    <h1>CheMuLab — Learn Chemistry Through Play</h1>
+                    <p>Discover elements, combine them to create new reactions, and save your progress. Friendly for
+                        beginners and fun for learners of all ages.</p>
+                    <div class="hero-buttons">
+                        <a href="elements.html">Start Exploring</a>
+                        <a href="your_lab.html" class="secondary">Your Lab</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="img/jepoy.png" alt="Jepoy Robot">
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <a href="elements.html" class="quick-action-card">
+                    <strong>🔬 Start Discovery</strong>
+                    <div class="muted">Explore elements and try combinations</div>
+                </a>
+                <a href="your_lab.html" class="quick-action-card">
+                    <strong>🧪 Your Lab</strong>
+                    <div class="muted">View and manage your discovered elements</div>
+                </a>
+                <a href="progress_tracker.html" class="quick-action-card">
+                    <strong>📈 Progress</strong>
+                    <div class="muted">Check your learning progress and milestones</div>
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+const reactionsData = [
+    { id: 1, reactants: "2H₂ + O₂", products: "2H₂O", name: "Combustion of Hydrogen" },
+    { id: 2, reactants: "C + O₂", products: "CO₂", name: "Combustion of Carbon" },
+    { id: 3, reactants: "2Na + Cl₂", products: "2NaCl", name: "Formation of Sodium Chloride" },
+    { id: 4, reactants: "Fe + S", products: "FeS", name: "Formation of Iron Sulfide" },
+    { id: 5, reactants: "2Mg + O₂", products: "2MgO", name: "Combustion of Magnesium" },
+    { id: 6, reactants: "CaCO₃", products: "CaO + CO₂", name: "Thermal Decomposition of Calcium Carbonate" },
+    { id: 7, reactants: "Zn + 2HCl", products: "ZnCl₂ + H₂", name: "Zinc and Hydrochloric Acid" },
+    { id: 8, reactants: "2H₂O₂", products: "2H₂O + O₂", name: "Decomposition of Hydrogen Peroxide" },
+    { id: 9, reactants: "CH₄ + 2O₂", products: "CO₂ + 2H₂O", name: "Combustion of Methane" },
+    { id: 10, reactants: "N₂ + 3H₂", products: "2NH₃", name: "Haber Process (Ammonia Synthesis)" },
+    { id: 11, reactants: "2K + 2H₂O", products: "2KOH + H₂", name: "Potassium Reacting with Water" },
+    { id: 12, reactants: "CuSO₄ + Fe", products: "FeSO₄ + Cu", name: "Displacement of Copper by Iron" },
+    { id: 13, reactants: "AgNO₃ + NaCl", products: "AgCl + NaNO₃", name: "Precipitation of Silver Chloride" },
+    { id: 14, reactants: "2Al + 3CuO", products: "Al₂O₃ + 3Cu", name: "Thermite Reaction (Simplified)" },
+    { id: 15, reactants: "NaOH + HCl", products: "NaCl + H₂O", name: "Neutralization Reaction" },
+    { id: 16, reactants: "2Fe + 3Cl₂", products: "2FeCl₃", name: "Iron and Chlorine" },
+    { id: 17, reactants: "Ca + 2H₂O", products: "Ca(OH)₂ + H₂", name: "Calcium Reacting with Water" },
+    { id: 18, reactants: "2KClO₃", products: "2KCl + 3O₂", name: "Decomposition of Potassium Chlorate" },
+    { id: 19, reactants: "Pb(NO₃)₂ + 2KI", products: "PbI₂ + 2KNO₃", name: "Precipitation of Lead Iodide" },
+    { id: 20, reactants: "C₆H₁₂O₆ + 6O₂", products: "6CO₂ + 6H₂O", name: "Cellular Respiration (Glucose)" }
+];

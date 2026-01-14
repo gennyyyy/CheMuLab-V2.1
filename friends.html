@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheMuLab - Friends</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Configuration and Services -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content friends-page">
+            <div class="friends-panel">
+                <h2>Your Friends</h2>
+
+                <div id="friendsList" class="friends-list"></div>
+
+                <h3>Add Friend</h3>
+                <div class="add-friend">
+                    <input id="friendEmail" type="email" placeholder="Friend's email" />
+                    <button id="addFriendBtn">Add</button>
+                    <div id="addFriendMsg" class="muted small"></div>
+                </div>
+
+                <h3>Pending Requests</h3>
+                <div class="requests-section">
+                    <h4>Incoming</h4>
+                    <div id="friendRequestsList" class="friends-list"></div>
+
+                    <h4>Outgoing</h4>
+                    <div id="outgoingRequestsList" class="friends-list"></div>
+                </div>
+            </div>
+
+            <div class="chat-panel">
+                <div id="chatHeader" class="chat-header">Select a friend to chat</div>
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input id="chatText" type="text" placeholder="Type a message" />
+                    <button id="sendMsgBtn">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/friends.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheMuLab - Elements</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK (ensure available before app code) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <script src="js/discovery-service.js"></script>
+    <script src="js/elements-data.js"></script>
+    <script src="js/element-discovery.js"></script>
+    <style>
+        .element {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .element.discovered {
+            box-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+        }
+
+        .element:hover {
+            transform: scale(1.1);
+            z-index: 1;
+        }
+    </style>
+
+    <script>
+        // Defer the redirect-check until Firebase is initialized and auth state is known
+        (function () {
+            function checkAndRedirect() {
+                try {
+                    if (!window.firebase || !firebase.auth) return; // not ready yet
+                    firebase.auth().onAuthStateChanged(function (user) {
+                        if (!user) {
+                            sessionStorage.setItem('redirectAfterLogin', window.location.pathname.split('/').pop());
+                            window.location.href = 'sign_in.html';
+                        }
+                    });
+                } catch (e) {
+                    // ignore and wait for firebaseReady
+                }
+            }
+
+            if (window.firebase && firebase.auth) {
+                checkAndRedirect();
+            } else {
+                window.addEventListener('firebaseReady', checkAndRedirect, { once: true });
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <div>Click any elements here, and I will provide all the information you need to know!</div>
+            <div class="periodic-table">
+                <div class="main-table">
+                    <div class="element nonmetal" data-atomic-number="1" style="grid-row: 1; grid-column: 1;">
+                        <div class="atomic-number">1</div>
+                        <div class="symbol">H</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="2" style="grid-row: 1; grid-column: 18;">
+                        <div class="atomic-number">2</div>
+                        <div class="symbol">He</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="3" style="grid-row: 2; grid-column: 1;">
+                        <div class="atomic-number">3</div>
+                        <div class="symbol">Li</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="4" style="grid-row: 2; grid-column: 2;">
+                        <div class="atomic-number">4</div>
+                        <div class="symbol">Be</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="5" style="grid-row: 2; grid-column: 13;">
+                        <div class="atomic-number">5</div>
+                        <div class="symbol">B</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="6" style="grid-row: 2; grid-column: 14;">
+                        <div class="atomic-number">6</div>
+                        <div class="symbol">C</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="7" style="grid-row: 2; grid-column: 15;">
+                        <div class="atomic-number">7</div>
+                        <div class="symbol">N</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="8" style="grid-row: 2; grid-column: 16;">
+                        <div class="atomic-number">8</div>
+                        <div class="symbol">O</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="9" style="grid-row: 2; grid-column: 17;">
+                        <div class="atomic-number">9</div>
+                        <div class="symbol">F</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="10" style="grid-row: 2; grid-column: 18;">
+                        <div class="atomic-number">10</div>
+                        <div class="symbol">Ne</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="11" style="grid-row: 3; grid-column: 1;">
+                        <div class="atomic-number">11</div>
+                        <div class="symbol">Na</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="12" style="grid-row: 3; grid-column: 2;">
+                        <div class="atomic-number">12</div>
+                        <div class="symbol">Mg</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="13" style="grid-row: 3; grid-column: 13;">
+                        <div class="atomic-number">13</div>
+                        <div class="symbol">Al</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="14" style="grid-row: 3; grid-column: 14;">
+                        <div class="atomic-number">14</div>
+                        <div class="symbol">Si</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="15" style="grid-row: 3; grid-column: 15;">
+                        <div class="atomic-number">15</div>
+                        <div class="symbol">P</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="16" style="grid-row: 3; grid-column: 16;">
+                        <div class="atomic-number">16</div>
+                        <div class="symbol">S</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="17" style="grid-row: 3; grid-column: 17;">
+                        <div class="atomic-number">17</div>
+                        <div class="symbol">Cl</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="18" style="grid-row: 3; grid-column: 18;">
+                        <div class="atomic-number">18</div>
+                        <div class="symbol">Ar</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="19" style="grid-row: 4; grid-column: 1;">
+                        <div class="atomic-number">19</div>
+                        <div class="symbol">K</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="20" style="grid-row: 4; grid-column: 2;">
+                        <div class="atomic-number">20</div>
+                        <div class="symbol">Ca</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="21" style="grid-row: 4; grid-column: 3;">
+                        <div class="atomic-number">21</div>
+                        <div class="symbol">Sc</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="22" style="grid-row: 4; grid-column: 4;">
+                        <div class="atomic-number">22</div>
+                        <div class="symbol">Ti</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="23" style="grid-row: 4; grid-column: 5;">
+                        <div class="atomic-number">23</div>
+                        <div class="symbol">V</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="24" style="grid-row: 4; grid-column: 6;">
+                        <div class="atomic-number">24</div>
+                        <div class="symbol">Cr</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="25" style="grid-row: 4; grid-column: 7;">
+                        <div class="atomic-number">25</div>
+                        <div class="symbol">Mn</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="26" style="grid-row: 4; grid-column: 8;">
+                        <div class="atomic-number">26</div>
+                        <div class="symbol">Fe</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="27" style="grid-row: 4; grid-column: 9;">
+                        <div class="atomic-number">27</div>
+                        <div class="symbol">Co</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="28" style="grid-row: 4; grid-column: 10;">
+                        <div class="atomic-number">28</div>
+                        <div class="symbol">Ni</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="29" style="grid-row: 4; grid-column: 11;">
+                        <div class="atomic-number">29</div>
+                        <div class="symbol">Cu</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="30" style="grid-row: 4; grid-column: 12;">
+                        <div class="atomic-number">30</div>
+                        <div class="symbol">Zn</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="31" style="grid-row: 4; grid-column: 13;">
+                        <div class="atomic-number">31</div>
+                        <div class="symbol">Ga</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="32" style="grid-row: 4; grid-column: 14;">
+                        <div class="atomic-number">32</div>
+                        <div class="symbol">Ge</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="33" style="grid-row: 4; grid-column: 15;">
+                        <div class="atomic-number">33</div>
+                        <div class="symbol">As</div>
+                    </div>
+                    <div class="element nonmetal" data-atomic-number="34" style="grid-row: 4; grid-column: 16;">
+                        <div class="atomic-number">34</div>
+                        <div class="symbol">Se</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="35" style="grid-row: 4; grid-column: 17;">
+                        <div class="atomic-number">35</div>
+                        <div class="symbol">Br</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="36" style="grid-row: 4; grid-column: 18;">
+                        <div class="atomic-number">36</div>
+                        <div class="symbol">Kr</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="37" style="grid-row: 5; grid-column: 1;">
+                        <div class="atomic-number">37</div>
+                        <div class="symbol">Rb</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="38" style="grid-row: 5; grid-column: 2;">
+                        <div class="atomic-number">38</div>
+                        <div class="symbol">Sr</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="39" style="grid-row: 5; grid-column: 3;">
+                        <div class="atomic-number">39</div>
+                        <div class="symbol">Y</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="40" style="grid-row: 5; grid-column: 4;">
+                        <div class="atomic-number">40</div>
+                        <div class="symbol">Zr</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="41" style="grid-row: 5; grid-column: 5;">
+                        <div class="atomic-number">41</div>
+                        <div class="symbol">Nb</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="42" style="grid-row: 5; grid-column: 6;">
+                        <div class="atomic-number">42</div>
+                        <div class="symbol">Mo</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="43" style="grid-row: 5; grid-column: 7;">
+                        <div class="atomic-number">43</div>
+                        <div class="symbol">Tc</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="44" style="grid-row: 5; grid-column: 8;">
+                        <div class="atomic-number">44</div>
+                        <div class="symbol">Ru</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="45" style="grid-row: 5; grid-column: 9;">
+                        <div class="atomic-number">45</div>
+                        <div class="symbol">Rh</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="46" style="grid-row: 5; grid-column: 10;">
+                        <div class="atomic-number">46</div>
+                        <div class="symbol">Pd</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="47" style="grid-row: 5; grid-column: 11;">
+                        <div class="atomic-number">47</div>
+                        <div class="symbol">Ag</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="48" style="grid-row: 5; grid-column: 12;">
+                        <div class="atomic-number">48</div>
+                        <div class="symbol">Cd</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="49" style="grid-row: 5; grid-column: 13;">
+                        <div class="atomic-number">49</div>
+                        <div class="symbol">In</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="50" style="grid-row: 5; grid-column: 14;">
+                        <div class="atomic-number">50</div>
+                        <div class="symbol">Sn</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="51" style="grid-row: 5; grid-column: 15;">
+                        <div class="atomic-number">51</div>
+                        <div class="symbol">Sb</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="52" style="grid-row: 5; grid-column: 16;">
+                        <div class="atomic-number">52</div>
+                        <div class="symbol">Te</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="53" style="grid-row: 5; grid-column: 17;">
+                        <div class="atomic-number">53</div>
+                        <div class="symbol">I</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="54" style="grid-row: 5; grid-column: 18;">
+                        <div class="atomic-number">54</div>
+                        <div class="symbol">Xe</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="55" style="grid-row: 6; grid-column: 1;">
+                        <div class="atomic-number">55</div>
+                        <div class="symbol">Cs</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="56" style="grid-row: 6; grid-column: 2;">
+                        <div class="atomic-number">56</div>
+                        <div class="symbol">Ba</div>
+                    </div>
+                    <div class="element lanthanide" data-atomic-number="57" style="grid-row: 6; grid-column: 3;">
+                        <div class="atomic-number">57</div>
+                        <div class="symbol">La</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="72" style="grid-row: 6; grid-column: 4;">
+                        <div class="atomic-number">72</div>
+                        <div class="symbol">Hf</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="73" style="grid-row: 6; grid-column: 5;">
+                        <div class="atomic-number">73</div>
+                        <div class="symbol">Ta</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="74" style="grid-row: 6; grid-column: 6;">
+                        <div class="atomic-number">74</div>
+                        <div class="symbol">W</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="75" style="grid-row: 6; grid-column: 7;">
+                        <div class="atomic-number">75</div>
+                        <div class="symbol">Re</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="76" style="grid-row: 6; grid-column: 8;">
+                        <div class="atomic-number">76</div>
+                        <div class="symbol">Os</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="77" style="grid-row: 6; grid-column: 9;">
+                        <div class="atomic-number">77</div>
+                        <div class="symbol">Ir</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="78" style="grid-row: 6; grid-column: 10;">
+                        <div class="atomic-number">78</div>
+                        <div class="symbol">Pt</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="79" style="grid-row: 6; grid-column: 11;">
+                        <div class="atomic-number">79</div>
+                        <div class="symbol">Au</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="80" style="grid-row: 6; grid-column: 12;">
+                        <div class="atomic-number">80</div>
+                        <div class="symbol">Hg</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="81" style="grid-row: 6; grid-column: 13;">
+                        <div class="atomic-number">81</div>
+                        <div class="symbol">Tl</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="82" style="grid-row: 6; grid-column: 14;">
+                        <div class="atomic-number">82</div>
+                        <div class="symbol">Pb</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="83" style="grid-row: 6; grid-column: 15;">
+                        <div class="atomic-number">83</div>
+                        <div class="symbol">Bi</div>
+                    </div>
+                    <div class="element metalloid" data-atomic-number="84" style="grid-row: 6; grid-column: 16;">
+                        <div class="atomic-number">84</div>
+                        <div class="symbol">Po</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="85" style="grid-row: 6; grid-column: 17;">
+                        <div class="atomic-number">85</div>
+                        <div class="symbol">At</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="86" style="grid-row: 6; grid-column: 18;">
+                        <div class="atomic-number">86</div>
+                        <div class="symbol">Rn</div>
+                    </div>
+                    <div class="element alkali" data-atomic-number="87" style="grid-row: 7; grid-column: 1;">
+                        <div class="atomic-number">87</div>
+                        <div class="symbol">Fr</div>
+                    </div>
+                    <div class="element alkaline-earth" data-atomic-number="88" style="grid-row: 7; grid-column: 2;">
+                        <div class="atomic-number">88</div>
+                        <div class="symbol">Ra</div>
+                    </div>
+                    <div class="element actinide" data-atomic-number="89" style="grid-row: 7; grid-column: 3;">
+                        <div class="atomic-number">89</div>
+                        <div class="symbol">Ac</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="104" style="grid-row: 7; grid-column: 4;">
+                        <div class="atomic-number">104</div>
+                        <div class="symbol">Rf</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="105" style="grid-row: 7; grid-column: 5;">
+                        <div class="atomic-number">105</div>
+                        <div class="symbol">Db</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="106" style="grid-row: 7; grid-column: 6;">
+                        <div class="atomic-number">106</div>
+                        <div class="symbol">Sg</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="107" style="grid-row: 7; grid-column: 7;">
+                        <div class="atomic-number">107</div>
+                        <div class="symbol">Bh</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="108" style="grid-row: 7; grid-column: 8;">
+                        <div class="atomic-number">108</div>
+                        <div class="symbol">Hs</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="109" style="grid-row: 7; grid-column: 9;">
+                        <div class="atomic-number">109</div>
+                        <div class="symbol">Mt</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="110" style="grid-row: 7; grid-column: 10;">
+                        <div class="atomic-number">110</div>
+                        <div class="symbol">Ds</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="111" style="grid-row: 7; grid-column: 11;">
+                        <div class="atomic-number">111</div>
+                        <div class="symbol">Rg</div>
+                    </div>
+                    <div class="element transition" data-atomic-number="112" style="grid-row: 7; grid-column: 12;">
+                        <div class="atomic-number">112</div>
+                        <div class="symbol">Cn</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="113" style="grid-row: 7; grid-column: 13;">
+                        <div class="atomic-number">113</div>
+                        <div class="symbol">Nh</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="114" style="grid-row: 7; grid-column: 14;">
+                        <div class="atomic-number">114</div>
+                        <div class="symbol">Fl</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="115" style="grid-row: 7; grid-column: 15;">
+                        <div class="atomic-number">115</div>
+                        <div class="symbol">Mc</div>
+                    </div>
+                    <div class="element post-transition" data-atomic-number="116" style="grid-row: 7; grid-column: 16;">
+                        <div class="atomic-number">116</div>
+                        <div class="symbol">Lv</div>
+                    </div>
+                    <div class="element halogen" data-atomic-number="117" style="grid-row: 7; grid-column: 17;">
+                        <div class="atomic-number">117</div>
+                        <div class="symbol">Ts</div>
+                    </div>
+                    <div class="element noble-gas" data-atomic-number="118" style="grid-row: 7; grid-column: 18;">
+                        <div class="atomic-number">118</div>
+                        <div class="symbol">Og</div>
+                    </div>
+                </div>
+                <div class="f-block">
+                    <div class="lanthanides">
+                        <div class="element lanthanide" data-atomic-number="58">
+                            <div class="atomic-number">58</div>
+                            <div class="symbol">Ce</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="59">
+                            <div class="atomic-number">59</div>
+                            <div class="symbol">Pr</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="60">
+                            <div class="atomic-number">60</div>
+                            <div class="symbol">Nd</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="61">
+                            <div class="atomic-number">61</div>
+                            <div class="symbol">Pm</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="62">
+                            <div class="atomic-number">62</div>
+                            <div class="symbol">Sm</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="63">
+                            <div class="atomic-number">63</div>
+                            <div class="symbol">Eu</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="64">
+                            <div class="atomic-number">64</div>
+                            <div class="symbol">Gd</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="65">
+                            <div class="atomic-number">65</div>
+                            <div class="symbol">Tb</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="66">
+                            <div class="atomic-number">66</div>
+                            <div class="symbol">Dy</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="67">
+                            <div class="atomic-number">67</div>
+                            <div class="symbol">Ho</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="68">
+                            <div class="atomic-number">68</div>
+                            <div class="symbol">Er</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="69">
+                            <div class="atomic-number">69</div>
+                            <div class="symbol">Tm</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="70">
+                            <div class="atomic-number">70</div>
+                            <div class="symbol">Yb</div>
+                        </div>
+                        <div class="element lanthanide" data-atomic-number="71">
+                            <div class="atomic-number">71</div>
+                            <div class="symbol">Lu</div>
+                        </div>
+                    </div>
+                    <div class="actinides">
+                        <div class="element actinide" data-atomic-number="90">
+                            <div class="atomic-number">90</div>
+                            <div class="symbol">Th</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="91">
+                            <div class="atomic-number">91</div>
+                            <div class="symbol">Pa</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="92">
+                            <div class="atomic-number">92</div>
+                            <div class="symbol">U</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="93">
+                            <div class="atomic-number">93</div>
+                            <div class="symbol">Np</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="94">
+                            <div class="atomic-number">94</div>
+                            <div class="symbol">Pu</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="95">
+                            <div class="atomic-number">95</div>
+                            <div class="symbol">Am</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="96">
+                            <div class="atomic-number">96</div>
+                            <div class="symbol">Cm</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="97">
+                            <div class="atomic-number">97</div>
+                            <div class="symbol">Bk</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="98">
+                            <div class="atomic-number">98</div>
+                            <div class="symbol">Cf</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="99">
+                            <div class="atomic-number">99</div>
+                            <div class="symbol">Es</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="100">
+                            <div class="atomic-number">100</div>
+                            <div class="symbol">Fm</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="101">
+                            <div class="atomic-number">101</div>
+                            <div class="symbol">Md</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="102">
+                            <div class="atomic-number">102</div>
+                            <div class="symbol">No</div>
+                        </div>
+                        <div class="element actinide" data-atomic-number="103">
+                            <div class="atomic-number">103</div>
+                            <div class="symbol">Lr</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <img class="robot" src="img/jepoy.png" alt="Robot">
+        </div>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="elementModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="elementName"></h2>
+            <p>Atomic Number: <span id="atomicNumber"></span></p>
+            <p>Symbol: <span id="elementSymbol"></span></p>
+            <p>Atomic Mass: <span id="atomicMass"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // elementsData is now loaded from js/elements-data.js
+
+        // Get the modal
+        var modal = document.getElementById("elementModal");
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Add click event to each element
+        document.querySelectorAll('.element').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var atomicNumber = parseInt(this.getAttribute('data-atomic-number'));
+                var elementInfo = elementsData.find(e => e.atomic_number === atomicNumber);
+                if (elementInfo) {
+                    document.getElementById('elementName').textContent = elementInfo.name;
+                    document.getElementById('atomicNumber').textContent = elementInfo.atomic_number;
+                    document.getElementById('elementSymbol').textContent = elementInfo.symbol;
+                    document.getElementById('atomicMass').textContent = elementInfo.atomic_mass.toFixed(3);
+                    modal.style.display = "block";
+                }
+            });
+        });
+    </script>
+    <script src="js/script.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+
+</html>

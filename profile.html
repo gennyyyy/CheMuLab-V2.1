@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheMuLab - Profile</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK (ensure available before app code) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <script src="js/discovery-service.js"></script>
+    <script src="js/progress-tracker.js"></script>
+    <!-- Cropper.js removed as we are switching to image URLs -->
+
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <!-- Profile Section -->
+            <div class="profile-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1>My Profile</h1>
+                    <button id="editProfileBtn" class="edit-btn"
+                        style="padding: 8px 16px; background: #87ceeb; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Edit</button>
+                </div>
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="profile-avatar" id="profileAvatar"
+                                style="width: 80px; height: 80px; border-radius: 50%; background: #87ceeb; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden;">
+                                <img id="avatarImage" src="img/default-avatar.png" alt="Profile"
+                                    style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="profileUsername">Loading...</h2>
+                            <p id="profileEmail" class="muted">Email</p>
+                            <p id="profileJoinDate" class="muted small">Joined date</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile Modal (Initially Hidden) -->
+            <div id="editProfileModal"
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+                <div
+                    style="background: #add8e6; padding: 30px; border-radius: 10px; border: 2px solid #000; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
+                    <h2 style="margin-top: 0; margin-bottom: 20px; text-align: center;">Edit Profile</h2>
+                    <div id="editErrorMessage"
+                        style="color: #ff0000; background: rgba(255,0,0,0.1); padding: 12px; border-radius: 5px; margin-bottom: 15px; display: none; text-align: center; font-weight: 500;">
+                    </div>
+                    <div id="editSuccessMessage"
+                        style="color: #008000; background: rgba(0,128,0,0.1); padding: 12px; border-radius: 5px; margin-bottom: 15px; display: none; text-align: center; font-weight: 500;">
+                    </div>
+                    <form id="editProfileForm">
+                        <!-- Change Photo Button -->
+                        <!-- Profile Photo URL -->
+                        <div
+                            style="text-align: center; margin-bottom: 20px; padding: 15px; background: #fff; border-radius: 10px; border: 2px solid #000;">
+                            <div id="editAvatarPreview"
+                                style="width: 80px; height: 80px; border-radius: 50%; background: #fff; border: 2px solid #000; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; margin: 0 auto 10px;">
+                                <img id="editAvatarImage" src="img/default-avatar.png" alt="Profile"
+                                    style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <input type="url" id="editAvatarUrl" placeholder="Image URL (e.g. https://...)"
+                                style="width: 100%; padding: 8px; margin-bottom: 10px; border: 2px solid #000; border-radius: 5px; box-sizing: border-box; font-size: 12px;">
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button type="button" onclick="removeProfilePicture()"
+                                    style="padding: 8px 16px; background: #ff6b6b; color: #fff; border: 2px solid #000; border-radius: 50px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                                    🗑️ Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        <input type="text" id="editUsername" placeholder="Username" required
+                            style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid #000; border-radius: 8px; box-sizing: border-box; font-size: 14px; font-weight: bold;">
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" id="editSaveBtn"
+                                style="flex: 1; padding: 12px; background: #87ceeb; color: #000; border: 2px solid #000; border-radius: 8px; cursor: pointer; font-weight: bold;">Save</button>
+                            <button type="button" id="editCancelBtn"
+                                style="flex: 1; padding: 12px; background: #5f9ea0; color: #fff; border: 2px solid #000; border-radius: 8px; cursor: pointer; font-weight: bold;">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+
+
+            <!-- Progress Tracker Section -->
+            <div class="progress-tracker-section">
+                <h2>My Progress</h2>
+                <div id="progressTracker"></div>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script>
+        // Profile Picture Functions
+        function removeProfilePicture() {
+            if (confirm('Are you sure you want to remove your profile picture?')) {
+                document.getElementById('editAvatarUrl').value = '';
+                displayAvatar(null);
+                alert('Profile picture URL cleared. Remember to Save your changes!');
+            }
+        }
+
+        function displayAvatar(url) {
+            const avatarImage = document.getElementById('avatarImage');
+            const editAvatarImage = document.getElementById('editAvatarImage');
+
+            const finalUrl = url || 'img/default-avatar.png';
+
+            avatarImage.src = finalUrl;
+            if (editAvatarImage) {
+                editAvatarImage.src = finalUrl;
+            }
+        }
+
+        // Live preview for URL input
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('editAvatarUrl');
+            if (urlInput) {
+                urlInput.addEventListener('input', (e) => {
+                    const url = e.target.value.trim();
+                    if (url) {
+                        displayAvatar(url);
+                    } else {
+                        displayAvatar(null);
+                    }
+                });
+            }
+        });
+    </script>
+
+    <script>
+        // Initialize profile info using Firebase directly (not AuthService)
+        const initProfileInfo = async () => {
+            // Check if Firebase is ready
+            if (!window.firebase || !firebase.firestore || !firebase.auth) {
+                console.warn('Firebase not ready yet');
+                setTimeout(initProfileInfo, 100);
+                return;
+            }
+
+            const firebaseUser = firebase.auth().currentUser;
+            if (!firebaseUser) {
+                console.warn('No user signed in yet');
+                // Set up listener for when user signs in
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        console.log('User signed in, loading profile');
+                        loadProfileForUser(user.uid);
+                    } else {
+                        console.warn('User signed out or not available');
+                        document.getElementById('profileUsername').textContent = 'Not Signed In';
+                    }
+                });
+                return;
+            }
+
+            // User is already signed in
+            loadProfileForUser(firebaseUser.uid);
+        };
+
+        const loadProfileForUser = async (uid) => {
+            currentUserUid = uid;
+            try {
+                console.log('Loading profile for user:', uid);
+
+                // Fetch user profile from Firestore
+                const doc = await firebase.firestore().collection('users').doc(uid).get();
+                const profile = doc.exists ? doc.data() : {};
+
+                console.log('Profile data:', profile);
+
+                // Store username and photoURL for edit functionality
+                currentUsername = profile.username;
+                currentPhotoURL = profile.photoURL || '';
+
+                // Update avatar display
+                displayAvatar(profile.photoURL);
+
+                // Update username
+                const username = profile.username || profile.email || 'User';
+                document.getElementById('profileUsername').textContent = username;
+
+
+                // Update email (get from Firebase auth if not in profile)
+                const firebaseUser = firebase.auth().currentUser;
+                const email = firebaseUser ? firebaseUser.email : profile.email || 'No email';
+                document.getElementById('profileEmail').textContent = email;
+
+                // Update join date (handle Firestore Timestamp objects)
+                const joinDateEl = document.getElementById('profileJoinDate');
+                const formatPossibleTimestamp = (val) => {
+                    if (!val) return null;
+                    // Firestore Timestamp has toDate()
+                    if (typeof val.toDate === 'function') return val.toDate();
+                    // If it's a plain number (ms since epoch)
+                    if (typeof val === 'number') return new Date(val);
+                    // If it's an ISO string or other string
+                    const d = new Date(val);
+                    return isNaN(d.getTime()) ? null : d;
+                };
+
+                const regDate = formatPossibleTimestamp(profile.registrationDate);
+                const createdDate = formatPossibleTimestamp(profile.createdAt);
+                let usedDate = regDate || createdDate;
+                // Fallback: use Firebase Auth account creation time if Firestore timestamps missing
+                if (!usedDate) {
+                    try {
+                        const fUser = firebase.auth().currentUser;
+                        if (fUser && fUser.metadata && fUser.metadata.creationTime) {
+                            const d = new Date(fUser.metadata.creationTime);
+                            if (!isNaN(d.getTime())) usedDate = d;
+                        }
+                    } catch (e) {
+                        console.warn('Could not read auth metadata creationTime', e);
+                    }
+                }
+
+                if (usedDate) {
+                    joinDateEl.textContent = `Joined ${usedDate.toLocaleDateString()}`;
+                } else {
+                    joinDateEl.textContent = 'Joined date unknown';
+                }
+
+                console.log('Profile info loaded successfully');
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        };
+
+        // Start after a brief delay to ensure Firebase is initialized
+        setTimeout(initProfileInfo, 100);
+
+        // Initialize progress tracker
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressTracker = new ProgressTracker('progressTracker');
+        });
+
+        // Edit Profile functionality
+        let currentUserUid = null;
+        let currentUsername = null;
+        let currentPhotoURL = null;
+
+
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        const editProfileModal = document.getElementById('editProfileModal');
+        const editProfileForm = document.getElementById('editProfileForm');
+        const editUsernameInput = document.getElementById('editUsername');
+        const editCancelBtn = document.getElementById('editCancelBtn');
+        const editErrorMessage = document.getElementById('editErrorMessage');
+        const editSuccessMessage = document.getElementById('editSuccessMessage');
+
+        editProfileBtn.addEventListener('click', () => {
+            if (!currentUserUid) {
+                alert('Please sign in first');
+                return;
+            }
+            editUsernameInput.value = currentUsername || '';
+            document.getElementById('editAvatarUrl').value = currentPhotoURL || '';
+
+            // Sync avatar preview in modal
+            displayAvatar(currentPhotoURL);
+
+            editProfileModal.style.display = 'flex';
+            editErrorMessage.style.display = 'none';
+            editSuccessMessage.style.display = 'none';
+        });
+
+
+        editCancelBtn.addEventListener('click', () => {
+            editProfileModal.style.display = 'none';
+        });
+
+        editProfileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newUsername = editUsernameInput.value.trim();
+            const newPhotoURL = document.getElementById('editAvatarUrl').value.trim();
+
+            if (!newUsername) {
+                editErrorMessage.textContent = 'Username cannot be empty';
+                editErrorMessage.style.display = 'block';
+                return;
+            }
+
+            if (newUsername.length < 3 || newUsername.length > 20) {
+                editErrorMessage.textContent = 'Username must be between 3 and 20 characters';
+                editErrorMessage.style.display = 'block';
+                return;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+                editErrorMessage.textContent = 'Username can only contain letters, numbers, and underscores';
+                editErrorMessage.style.display = 'block';
+                return;
+            }
+
+            const usernameChanged = (newUsername !== currentUsername);
+            const photoURLChanged = (newPhotoURL !== currentPhotoURL);
+
+            if (!usernameChanged && !photoURLChanged) {
+                editErrorMessage.textContent = 'No changes made';
+                editErrorMessage.style.display = 'block';
+                return;
+            }
+
+
+            // Show loading state
+            const saveBtn = document.getElementById('editSaveBtn');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                // Check if new username already exists if it was changed
+                if (usernameChanged) {
+                    const usernameDoc = await firebase.firestore().collection('usernames').doc(newUsername).get();
+                    if (usernameDoc.exists) {
+                        throw new Error('This username is already taken. Please choose a different one.');
+                    }
+                }
+
+                const updates = {};
+                if (usernameChanged) updates.username = newUsername;
+                if (photoURLChanged) updates.photoURL = newPhotoURL;
+
+                // Update user profile
+                await firebase.firestore().collection('users').doc(currentUserUid).update(updates);
+
+                if (usernameChanged) {
+                    // Delete old username mapping
+                    await firebase.firestore().collection('usernames').doc(currentUsername).delete();
+
+                    // Create new username mapping
+                    await firebase.firestore().collection('usernames').doc(newUsername).set({
+                        uid: currentUserUid,
+                        email: firebase.auth().currentUser.email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Update local display
+                    currentUsername = newUsername;
+                    document.getElementById('profileUsername').textContent = newUsername;
+                    document.getElementById('userStatusText').textContent = newUsername;
+                }
+
+                if (photoURLChanged) {
+                    currentPhotoURL = newPhotoURL;
+                    displayAvatar(newPhotoURL);
+                }
+
+                editSuccessMessage.textContent = 'Profile updated successfully!';
+                editSuccessMessage.style.display = 'block';
+
+                setTimeout(() => {
+                    editProfileModal.style.display = 'none';
+                }, 1500);
+
+            } catch (error) {
+                editErrorMessage.textContent = error.message || 'Failed to update username. Please try again.';
+                editErrorMessage.style.display = 'block';
+            } finally {
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
+            }
+        });
+
+        // Store uid and username when profile loads
+        const originalLoadProfile = loadProfileForUser;
+        loadProfileForUser = async (uid) => {
+            currentUserUid = uid;
+            try {
+                const doc = await firebase.firestore().collection('users').doc(uid).get();
+                if (doc.exists) {
+                    currentUsername = doc.data().username;
+                }
+            } catch (error) {
+                console.error('Error loading username for edit:', error);
+            }
+            return originalLoadProfile(uid);
+        };
+    </script>
+    <script src="js/chatbot.js"></script>
+</body>
+
+</html>

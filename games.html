@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheMuLab - Games</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Configuration and Services -->
+    <script src="js/firebase-config.js"></script>
+    <!-- initialize Firebase as soon as config and SDKs are available -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <script src="js/discovery-service.js"></script>
+    <script src="js/firebase-test.js"></script>
+    <script src="js/quick-signin.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <!-- Hero Banner -->
+            <section class="hero">
+                <div style="flex:1;min-width:220px;">
+                    <h1>Games Arena</h1>
+                    <p>Challenge yourself with chemistry puzzles and quizzes!</p>
+                </div>
+            </section>
+
+            <!-- Games Grid -->
+            <h2>Available Games</h2>
+            <div class="quick-actions">
+                <a href="element_match.html" class="quick-action-card">
+                    <strong>🧪 Element Match</strong>
+                    <div class="muted">Match symbols to element names</div>
+                </a>
+                <a href="reaction_quiz.html" class="quick-action-card">
+                    <strong>⚗️ Reaction Quiz</strong>
+                    <div class="muted">Predict the products of reactions</div>
+                </a>
+                <a href="whack_a_mole.html" class="quick-action-card">
+                    <strong>⚖️ Whack-a-Mole</strong>
+                    <div class="muted">Catch the heavy metals!</div>
+                </a>
+                <a href="periodic_puzzle.html" class="quick-action-card">
+                    <strong>🧩 Periodic Puzzle</strong>
+                    <div class="muted">Assemble the table</div>
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script src="js/chatbot.js"></script>
+</body>
+
+</html>

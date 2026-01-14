@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction Quiz - CheMuLab</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase Client SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <!-- App Configuration and Services -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <script src="js/reactions-data.js"></script>
+    <style>
+        .game-area {
+            max-width: 650px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .score-board {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .question-box {
+            font-size: 1.5em;
+            margin: 30px 0;
+            padding: 20px;
+            background: #fff3e0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .reaction-equation {
+            font-size: 1.8em;
+            color: #e65100;
+            margin: 10px 0;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            cursor: pointer;
+            background: #ffcc80;
+            border: 2px solid #000;
+            border-radius: 8px;
+            transition: transform 0.1s;
+        }
+
+        .option-btn:hover {
+            transform: scale(1.02);
+            background: #ffa726;
+            color: #fff;
+        }
+
+        .option-btn.correct {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background: #f44336;
+            color: white;
+        }
+
+        .feedback {
+            height: 30px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .next-btn {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links">
+            </div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <div style="margin-bottom: 20px;">
+                <a href="games.html" style="text-decoration:none; color:#000;">&larr; Back to Games</a>
+            </div>
+
+            <div class="game-area">
+                <h1>⚗️ Reaction Quiz</h1>
+                <div class="score-board">
+                    <span>Score: <span id="score">0</span></span>
+                    <span>Streak: <span id="streak">0</span></span>
+                </div>
+
+                <div class="question-box">
+                    <div>What is the product of:</div>
+                    <div class="reaction-equation" id="question">Loading...</div>
+                </div>
+
+                <div class="feedback" id="feedback"></div>
+
+                <div class="options-grid" id="options">
+                    <!-- Options will be generated here -->
+                </div>
+
+                <button class="next-btn" id="nextBtn">Next Question</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script src="js/reaction-quiz.js"></script>
+</body>
+
+</html>
