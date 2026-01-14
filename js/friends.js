@@ -268,11 +268,43 @@
                 friendsList.innerHTML = '<div class="muted">No friends yet. Add one by email.</div>';
                 return;
             }
-            snap.forEach(doc => {
+
+            // Map each friend doc to a promise that fetches their latest profile info
+            const friendPromises = snap.docs.map(async doc => {
                 const data = doc.data();
+                const friendUid = data.uid;
+
+                try {
+                    // Fetch latest profile from source users collection
+                    const profileDoc = await firebase.firestore().collection('users').doc(friendUid).get();
+                    if (profileDoc.exists) {
+                        const profile = profileDoc.data();
+                        return {
+                            ...data,
+                            username: profile.username || data.username,
+                            photoURL: profile.photoURL || data.photoURL || null
+                        };
+                    }
+                } catch (e) {
+                    log('Error syncing profile for friend', friendUid, e);
+                }
+                return data; // fallback to cached data
+            });
+
+            const syncedFriends = await Promise.all(friendPromises);
+
+            syncedFriends.forEach(data => {
                 const div = document.createElement('div');
                 div.className = 'friend';
-                div.innerHTML = `<div class="friend-icon"></div><div class="friend-info"><strong>${escapeHtml(data.username || data.email || data.uid)}</strong><div class="muted small">${escapeHtml(data.email || '')}</div></div>`;
+
+                const avatarUrl = data.photoURL || 'img/default-avatar.png';
+                div.innerHTML = `
+                    <div class="friend-icon" style="background-image: url('${avatarUrl}'); background-size: cover; background-position: center;"></div>
+                    <div class="friend-info">
+                        <strong>${escapeHtml(data.username || data.email || data.uid)}</strong>
+                        <div class="muted small">${escapeHtml(data.email || '')}</div>
+                    </div>
+                `;
                 div.addEventListener('click', () => openChat(data));
                 friendsList.appendChild(div);
             });
@@ -369,8 +401,22 @@
             const fromUsername = data.fromUsername || null;
             const chatId = data.chatId || makeChatId(currentUser.uid, fromUid);
 
+            // Fetch latest profile of the sender to get photoURL
+            let fromPhotoURL = null;
+            try {
+                const fromProfile = await firebase.firestore().collection('users').doc(fromUid).get();
+                if (fromProfile.exists) fromPhotoURL = fromProfile.data().photoURL || null;
+            } catch (e) { log('Could not fetch sender profile', e); }
+
             // create friend doc for current user (recipient)
-            await firebase.firestore().collection('users').doc(currentUser.uid).collection('friends').doc(fromUid).set({ uid: fromUid, email: fromEmail, username: fromUsername, chatId, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            await firebase.firestore().collection('users').doc(currentUser.uid).collection('friends').doc(fromUid).set({
+                uid: fromUid,
+                email: fromEmail,
+                username: fromUsername,
+                photoURL: fromPhotoURL,
+                chatId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
             log('Created friend doc for recipient:', currentUser.uid, '->', fromUid);
 
             // create global chat doc if possible

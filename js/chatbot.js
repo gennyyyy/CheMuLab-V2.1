@@ -5,7 +5,7 @@
 
 const JEPOY_CONFIG = {
     // Note: In a production app, the API key should be handled by a backend proxy.
-    apiKey: (window.GEMINI_API_KEY || "AIzaSyD5C_2NHw_yZiIqeDM8RR61r_wCYJ9_C34").trim(),
+    apiKey: (window.GEMINI_API_KEY || "").trim(),
     model: "gemini-2.0-flash", // Updated to a confirmed working model
     systemPrompt: `You are Jepoy Robot, the friendly AI assistant for CheMuLab, an interactive chemistry learning platform. 
     Your goal is to help users explore elements, discover reactions, and navigate the app.
