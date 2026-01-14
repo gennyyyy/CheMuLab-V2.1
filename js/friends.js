@@ -79,6 +79,22 @@
         $('#addFriendBtn').addEventListener('click', () => { addFriendByEmail($('#friendEmail').value.trim()); });
         $('#sendMsgBtn').addEventListener('click', sendMessage);
         $('#chatText').addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        // Profile Modal
+        const profileModal = $('#friendProfileModal');
+        const closeBtn = $('#closeProfileModal');
+        if (closeBtn) closeBtn.onclick = () => profileModal.style.display = 'none';
+        window.onclick = (e) => { if (e.target === profileModal) profileModal.style.display = 'none'; };
+
+        const unfriendBtn = $('#unfriendBtn');
+        if (unfriendBtn) unfriendBtn.onclick = async () => {
+            if (activeChat && activeChat.friendUid) {
+                if (confirm('Are you sure you want to unfriend this user? This will also delete your chat history with them.')) {
+                    await unfriend(activeChat.friendUid);
+                    profileModal.style.display = 'none';
+                }
+            }
+        };
     }
 
     // Listen for incoming friend requests (toUid == currentUser.uid)
@@ -304,7 +320,15 @@
                         <strong>${escapeHtml(data.username || data.email || data.uid)}</strong>
                         <div class="muted small">${escapeHtml(data.email || '')}</div>
                     </div>
+                    <button class="list-view-profile-btn" style="background: rgba(255,255,255,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: auto;">View</button>
                 `;
+
+                const viewBtn = div.querySelector('.list-view-profile-btn');
+                viewBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showFriendProfile(data);
+                });
+
                 div.addEventListener('click', () => openChat(data));
                 friendsList.appendChild(div);
             });
@@ -449,8 +473,24 @@
     function makeChatId(a, b) { return [a, b].sort().join('_'); }
 
     async function openChat(friendData) {
-        activeChat = { friendUid: friendData.uid, chatId: friendData.chatId || makeChatId(currentUser.uid, friendData.uid) };
-        $('#chatHeader').textContent = friendData.username || friendData.email || 'Friend';
+        activeChat = { friendUid: friendData.uid, chatId: friendData.chatId || makeChatId(currentUser.uid, friendData.uid), ...friendData };
+
+        // Setup Chat Header with Profile Button
+        $('#chatHeader').innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span>${escapeHtml(friendData.username || friendData.email || 'Friend')}</span>
+                <button id="viewProfileBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">View Profile</button>
+            </div>
+        `;
+
+        const viewProfileBtn = $('#viewProfileBtn');
+        if (viewProfileBtn) {
+            viewProfileBtn.onclick = (e) => {
+                e.stopPropagation();
+                showFriendProfile(activeChat);
+            };
+        }
+
         $('#chatMessages').innerHTML = '<div class="muted">Loading messages...</div>';
 
         if (messagesUnsub) { try { messagesUnsub(); } catch (e) { } messagesUnsub = null; }
@@ -517,6 +557,87 @@
         try { await firebase.firestore().collection('users').doc(activeChat.friendUid).collection('friends').doc(currentUser.uid).collection('messages').add(payload); } catch (e) { /* ignore: may be blocked by rules */ }
 
         $('#chatText').value = '';
+    }
+
+    async function unfriend(friendUid) {
+        if (!currentUser) return;
+        try {
+            log('Unfriending:', friendUid);
+            const db = firebase.firestore();
+            const batch = db.batch();
+
+            // 1. Remove from current user's friends
+            const myFriendRef = db.collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
+            batch.delete(myFriendRef);
+
+            // 2. Remove from friend's friends (best effort, depends on rules)
+            const theirFriendRef = db.collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
+            batch.delete(theirFriendRef);
+
+            await batch.commit();
+            log('Unfriend successful');
+
+            // Clear active chat
+            activeChat = null;
+            $('#chatHeader').textContent = 'Select a friend to chat';
+            $('#chatMessages').innerHTML = '';
+
+            showMessage('Friend removed', false);
+            loadFriends();
+        } catch (e) {
+            log('Unfriend failed', e);
+            showMessage('Failed to unfriend: ' + (e.message || e), true);
+        }
+    }
+
+    async function showFriendProfile(data) {
+        const modal = $('#friendProfileModal');
+        const icon = $('#friendProfileIcon');
+        const name = $('#friendProfileName');
+        const email = $('#friendProfileEmail');
+        const joinDate = $('#friendProfileJoinDate');
+        const stats = $('#friendProfileStats');
+
+        const avatarUrl = data.photoURL || 'img/default-avatar.png';
+        icon.style.backgroundImage = `url('${avatarUrl}')`;
+        name.textContent = data.username || 'No Name';
+        email.textContent = data.email || 'No Email';
+        joinDate.textContent = 'Loading join date...';
+        stats.textContent = 'Loading progress...';
+
+        modal.style.display = 'block';
+
+        try {
+            const db = firebase.firestore();
+
+            // Fetch extra profile info (Join Date)
+            const profileDoc = await db.collection('users').doc(data.uid).get();
+            if (profileDoc.exists) {
+                const p = profileDoc.data();
+                const createdAt = p.registrationDate || p.createdAt || null;
+                if (createdAt) {
+                    const d = (typeof createdAt.toDate === 'function') ? createdAt.toDate() : new Date(createdAt);
+                    joinDate.textContent = `Joined ${d.toLocaleDateString()}`;
+                } else {
+                    joinDate.textContent = 'Joined date unknown';
+                }
+            }
+
+            // Fetch progress info
+            const progressDoc = await db.collection('progress').doc(data.uid).get();
+            if (progressDoc.exists) {
+                const prog = progressDoc.data();
+                const count = (prog.discoveries ? prog.discoveries.length : 0);
+                stats.textContent = `${count} Discoveries`;
+            } else {
+                stats.textContent = '0 Discoveries';
+            }
+
+        } catch (e) {
+            log('Error fetching extra profile details', e);
+            joinDate.textContent = 'Error loading details';
+            stats.textContent = 'Error loading progress';
+        }
     }
 
     // init on script load

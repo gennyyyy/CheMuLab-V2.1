@@ -718,6 +718,21 @@ body {
     cursor: pointer;
 }
 
+#unfriendBtn:hover {
+    background-color: #ff3333 !important;
+    transform: scale(1.02);
+}
+
+#viewProfileBtn:hover {
+    background: rgba(255, 255, 255, 0.4) !important;
+    transform: scale(1.05);
+}
+
+.list-view-profile-btn:hover {
+    background: rgba(255, 255, 255, 0.6) !important;
+    transform: scale(1.05);
+}
+
 
 /* ===== MOBILE RESPONSIVENESS ayoko na...===== */
 
@@ -1399,7 +1414,7 @@ body {
     transform: translateX(-2px);
 }
 
-/* ===== JEPOY ROBOT CHATBOT STYLES ===== */
+/* ===== POPOY CHATBOT STYLES ===== */
 
 .chatbot-bubble {
     position: fixed;

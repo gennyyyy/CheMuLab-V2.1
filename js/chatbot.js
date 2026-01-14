@@ -1,13 +1,13 @@
 /**
- * Jepoy Robot Chatbot Implementation
+ * Popoy Chatbot Implementation
  * Integrates Gemini API to provide a friendly chemistry assistant.
  */
 
-const JEPOY_CONFIG = {
+const POPOY_CONFIG = {
     // Note: In a production app, the API key should be handled by a backend proxy.
     apiKey: (window.GEMINI_API_KEY || "").trim(),
     model: "gemini-2.0-flash", // Updated to a confirmed working model
-    systemPrompt: `You are Jepoy Robot, the friendly AI assistant for CheMuLab, an interactive chemistry learning platform. 
+    systemPrompt: `You are Popoy, the friendly AI assistant for CheMuLab, an interactive chemistry learning platform. 
     Your goal is to help users explore elements, discover reactions, and navigate the app.
     
     TONE: Friendly, enthusiastic, and helpful. Use lab-related metaphors.
@@ -19,15 +19,15 @@ const JEPOY_CONFIG = {
     - Progress: Tracks milestones and achievements.
     - Friends: Social learning with friends.
     - Profile: Custom avatars and verification status.
-
+ 
     Always keep explanations simple but scientifically accurate.`
 };
 
-class JepoyChatbot {
+class PopoyChatbot {
     constructor() {
         this.isOpen = false;
         this.messages = [
-            { role: "bot", content: "Hello! I'm Jepoy Robot. How can I help you in the lab today?" }
+            { role: "bot", content: "Hello! I'm Popoy. How can I help you in the lab today?" }
         ];
         this.initUI();
     }
@@ -36,7 +36,7 @@ class JepoyChatbot {
         // Create Chat Bubble
         const bubble = document.createElement("div");
         bubble.className = "chatbot-bubble";
-        bubble.innerHTML = '<img src="img/jepoy.png" alt="Jepoy Robot">';
+        bubble.innerHTML = '<img src="img/jepoy.png" alt="Popoy">';
         bubble.onclick = () => this.toggleChat();
         document.body.appendChild(bubble);
 
@@ -46,12 +46,12 @@ class JepoyChatbot {
         windowDiv.id = "chatbotWindow";
         windowDiv.innerHTML = `
             <div class="chatbot-header">
-                <h3>Jepoy Robot</h3>
-                <button class="chatbot-close" onclick="window.jepoyRobot.toggleChat()">×</button>
+                <h3>Popoy</h3>
+                <button class="chatbot-close" onclick="window.popoyBot.toggleChat()">×</button>
             </div>
             <div class="chatbot-messages" id="chatbotMessages"></div>
             <div class="chatbot-input-area">
-                <input type="text" class="chatbot-input" id="chatbotInput" placeholder="Ask Jepoy something...">
+                <input type="text" class="chatbot-input" id="chatbotInput" placeholder="Ask Popoy something...">
                 <button class="chatbot-send" id="chatbotSend">
                     <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
                 </button>
@@ -104,7 +104,7 @@ class JepoyChatbot {
         // Add loading state
         const loadingDiv = document.createElement("div");
         loadingDiv.className = "message bot loading";
-        loadingDiv.textContent = "Jepoy is thinking...";
+        loadingDiv.textContent = "Popoy is thinking...";
         this.messagesDiv.appendChild(loadingDiv);
         this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
 
@@ -116,7 +116,7 @@ class JepoyChatbot {
             this.messages.push({ role: "bot", content: response });
             this.renderMessages();
         } catch (error) {
-            console.error("Jepoy Error Log:", error);
+            console.error("Popoy Error Log:", error);
             if (this.messagesDiv.contains(loadingDiv)) {
                 this.messagesDiv.removeChild(loadingDiv);
             }
@@ -130,7 +130,7 @@ class JepoyChatbot {
     }
 
     async callGemini(prompt) {
-        if (!JEPOY_CONFIG.apiKey || JEPOY_CONFIG.apiKey.startsWith("YOUR_")) {
+        if (!POPOY_CONFIG.apiKey || POPOY_CONFIG.apiKey.startsWith("YOUR_")) {
             return "I need a valid API key to think! Please update the key in js/chatbot.js.";
         }
 
@@ -140,11 +140,11 @@ class JepoyChatbot {
 
         for (const model of modelsToTry) {
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${JEPOY_CONFIG.apiKey}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${POPOY_CONFIG.apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        system_instruction: { parts: [{ text: JEPOY_CONFIG.systemPrompt }] },
+                        system_instruction: { parts: [{ text: POPOY_CONFIG.systemPrompt }] },
                         contents: [{ parts: [{ text: prompt }] }]
                     })
                 });
@@ -170,5 +170,5 @@ class JepoyChatbot {
 
 // Initialize when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
-    window.jepoyRobot = new JepoyChatbot();
+    window.popoyBot = new PopoyChatbot();
 });
