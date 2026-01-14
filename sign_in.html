@@ -192,7 +192,11 @@
                 // DOM Elements
                 const loginForm = document.getElementById('loginForm');
                 const registerForm = document.getElementById('registerForm');
+                const forgotForm = document.getElementById('forgotPasswordForm');
                 const toggleButton = document.getElementById('toggleAuth');
+                const authToggleContainer = document.getElementById('authToggleContainer');
+                const showForgotBtn = document.getElementById('showForgotBtn');
+                const backToSignInBtn = document.getElementById('backToSignIn');
                 const errorMessage = document.getElementById('errorMessage');
                 const successMessage = document.getElementById('successMessage');
 
@@ -221,6 +225,7 @@
                     const isLogin = loginForm.style.display !== 'none';
                     loginForm.style.display = isLogin ? 'none' : 'flex';
                     registerForm.style.display = isLogin ? 'flex' : 'none';
+                    forgotForm.style.display = 'none';
                     toggleButton.textContent = isLogin ?
                         'Already have an account? Sign in' :
                         "Don't have an account? Sign up";
@@ -229,6 +234,57 @@
                     document.querySelectorAll('input').forEach(input => {
                         input.classList.remove('input-error');
                     });
+                });
+
+                // Show Forgot Password Form
+                showForgotBtn.addEventListener('click', () => {
+                    loginForm.style.display = 'none';
+                    registerForm.style.display = 'none';
+                    forgotForm.style.display = 'flex';
+                    authToggleContainer.style.display = 'none';
+                    clearMessages();
+                });
+
+                // Back to Sign In from Forgot Password
+                backToSignInBtn.addEventListener('click', () => {
+                    loginForm.style.display = 'flex';
+                    registerForm.style.display = 'none';
+                    forgotForm.style.display = 'none';
+                    authToggleContainer.style.display = 'block';
+                    clearMessages();
+                });
+
+                // Handle Forgot Password
+                forgotForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    clearMessages();
+
+                    const emailInput = document.getElementById('forgotEmail');
+                    const email = emailInput.value.trim();
+
+                    if (!email) {
+                        showError('Please enter your email address');
+                        emailInput.classList.add('input-error');
+                        return;
+                    }
+
+                    // Show loading state
+                    const submitBtn = forgotForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Sending...';
+                    submitBtn.classList.add('loading');
+
+                    try {
+                        await AuthService.forgotPassword(email);
+                        showSuccess('Password reset email sent! Please check your inbox.');
+                        submitBtn.textContent = originalText;
+                        submitBtn.classList.remove('loading');
+                        emailInput.value = '';
+                    } catch (error) {
+                        showError(error.message || 'Failed to send reset email. Please try again.');
+                        submitBtn.textContent = originalText;
+                        submitBtn.classList.remove('loading');
+                    }
                 });
 
                 // Handle Login
