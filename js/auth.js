@@ -4,7 +4,7 @@
 const AuthService = {
     // In-memory state to avoid persisting login credentials locally.
     _currentSnapshot: null,
-    _users: [ { username: 'admin', isAdmin: true, registrationDate: new Date().toISOString() } ],
+    _users: [{ username: 'admin', isAdmin: true, registrationDate: new Date().toISOString() }],
     _registrationInProgress: new Map(), // Track uids currently being registered
     _registrationData: new Map(), // Store registration data (username, email, uid) during registration
     STORAGE_KEYS: {
@@ -51,7 +51,7 @@ const AuthService = {
                     // Just return and let registration complete
                     return;
                 }
-                
+
                 // store a minimal current user snapshot in-memory for compatibility with legacy code
                 const snapshot = { uid: user.uid, email: user.email || null, isAnonymous: !!user.isAnonymous };
                 // attempt to load profile (username) from Firestore users collection
@@ -60,13 +60,13 @@ const AuthService = {
                     // This is critical because the registration process writes profile + username mapping
                     // and we need to wait for both to be visible
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     const doc = await firebase.firestore().collection('users').doc(user.uid).get();
                     const profile = doc && doc.exists ? doc.data() : null;
                     // Ensure username is always present — fallback to email or uid when profile missing
                     snapshot.username = (profile && profile.username) ? profile.username : (snapshot.email || user.uid);
                     console.info('AuthService: loaded profile username:', snapshot.username, 'from profile:', profile);
-                    
+
                     // Ensure a usernames -> uid mapping exists for this user. This fixes
                     // cases where accounts were created previously without a usernames doc.
                     // Run asynchronously but do not block sign-in flow.
@@ -106,10 +106,10 @@ const AuthService = {
         });
     },
 
-        // Check if email already exists in Firebase Authentication
+    // Check if email already exists in Firebase Authentication
     async checkEmailExists(email) {
         if (!window.firebase || !firebase.auth) throw new Error('Firebase not initialized');
-        
+
         try {
             // Use Firebase's fetchSignInMethodsForEmail to check if email exists
             const signInMethods = await firebase.auth().fetchSignInMethodsForEmail(email);
@@ -131,7 +131,7 @@ const AuthService = {
     // Check if username already exists in Firestore
     async checkUsernameExists(username) {
         if (!window.firebase || !firebase.firestore) throw new Error('Firebase not initialized');
-        
+
         try {
             const usernameDoc = await firebase.firestore().collection('usernames').doc(username).get();
             return usernameDoc.exists;
@@ -151,17 +151,17 @@ const AuthService = {
             if (!existing.empty) {
                 const existingUsername = existing.docs[0].id;
                 console.info('_ensureUsernameForUser: Username mapping already exists for uid:', uid, '-> username:', existingUsername);
-                
+
                 // IMPORTANT: Ensure the user profile also has this username
                 const userProfileDoc = await firebase.firestore().collection('users').doc(uid).get();
                 if (!userProfileDoc.exists || !userProfileDoc.data().username) {
                     console.info('_ensureUsernameForUser: Updating profile with existing username mapping:', existingUsername);
-                    await firebase.firestore().collection('users').doc(uid).set({ 
-                        username: existingUsername, 
-                        email: email || null 
+                    await firebase.firestore().collection('users').doc(uid).set({
+                        username: existingUsername,
+                        email: email || null
                     }, { merge: true });
                 }
-                
+
                 return existingUsername;
             }
 
@@ -174,18 +174,18 @@ const AuthService = {
                 const unameDoc = await firebase.firestore().collection('usernames').doc(profileUsername).get();
                 if (!unameDoc.exists) {
                     console.info('_ensureUsernameForUser: Creating missing mapping for profile username:', profileUsername);
-                    await firebase.firestore().collection('usernames').doc(profileUsername).set({ 
-                        uid: uid, 
-                        email: email || null, 
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+                    await firebase.firestore().collection('usernames').doc(profileUsername).set({
+                        uid: uid,
+                        email: email || null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
                 return profileUsername;
             }
 
             // Determine base username to try
-            let base = preferredUsername || (email ? email.split('@')[0] : null) || uid.slice(0,8);
-            base = String(base).toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || uid.slice(0,8);
+            let base = preferredUsername || (email ? email.split('@')[0] : null) || uid.slice(0, 8);
+            base = String(base).toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20) || uid.slice(0, 8);
 
             let candidate = base;
             let suffix = 0;
@@ -245,20 +245,20 @@ const AuthService = {
                 this._registrationInProgress.set(uid, true);
                 this._registrationData.set(uid, { username, email, uid });
                 console.info('Marked registration as in progress for uid:', uid);
-                
+
                 // link anonymous to email credential
                 const credential = firebase.auth.EmailAuthProvider.credential(email, password);
                 const result = await current.linkWithCredential(credential);
                 console.info('Link successful', { uid });
             } else {
                 console.info('Creating new user with email/password');
-                
+
                 // We don't know the uid yet, so we'll set the flag after creation
                 // But we'll do it synchronously by using onAuthStateChanged's immediate callback
                 const userCred = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 uid = userCred.user.uid;
                 createdNewAuthUser = true;
-                
+
                 // Mark registration as in progress AFTER creating user
                 // The auth listener may have already fired, but we store the data anyway
                 this._registrationInProgress.set(uid, true);
@@ -309,20 +309,20 @@ const AuthService = {
             console.info('Profile data to write:', profileData);
             await firebase.firestore().collection('users').doc(uid).set(profileData, { merge: true });
             console.info('User profile written for', uid, { username });
-            
+
             // Verify the write was successful by reading back
             const verifyDoc = await firebase.firestore().collection('users').doc(uid).get();
             if (verifyDoc.exists) {
                 console.info('Profile verification successful:', verifyDoc.data());
             }
-            
+
             // Update the in-memory snapshot immediately to prevent auth listener from deriving a new username
-            this._currentSnapshot = { 
-                uid: uid, 
-                email: email, 
-                username: username, 
-                isAnonymous: false, 
-                isAdmin: false 
+            this._currentSnapshot = {
+                uid: uid,
+                email: email,
+                username: username,
+                isAnonymous: false,
+                isAdmin: false
             };
             console.info('Updated in-memory snapshot with username:', username);
         } catch (profileErr) {
@@ -415,7 +415,7 @@ const AuthService = {
                 const fallbackUsername = snapshot.username || (u && (u.email || u.uid)) || null;
                 return { uid: u.uid, email: u.email || null, isAnonymous: !!u.isAnonymous, username: fallbackUsername, isAdmin: !!snapshot.isAdmin };
             }
-        } catch (e) {}
+        } catch (e) { }
         // Fallback to in-memory snapshot only (do not read persisted credentials)
         return this._currentSnapshot;
     },
@@ -438,7 +438,14 @@ const AuthService = {
     getAllUsers() { return Array.isArray(this._users) ? this._users.slice() : []; },
     initializeUserProgress(username) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ discoveredElements: [], completedCombinations: [] })); },
     getUserProgress(username) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; },
-    updateUserProgress(username, progress) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; localStorage.setItem(key, JSON.stringify(progress)); }
+    updateUserProgress(username, progress) { const key = this.STORAGE_KEYS.USER_PROGRESS + username; localStorage.setItem(key, JSON.stringify(progress)); },
+
+    // Send password reset email
+    async forgotPassword(email) {
+        if (!window.firebase || !firebase.auth) throw new Error('Firebase not initialized');
+        if (!email) throw new Error('Email is required');
+        return firebase.auth().sendPasswordResetEmail(email);
+    }
 };
 
 // Initialize auth listener

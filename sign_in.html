@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -87,7 +88,7 @@
             padding: 5px;
         }
 
-                .error-message {
+        .error-message {
             color: #ff0000;
             background: rgba(255, 0, 0, 0.1);
             padding: 12px;
@@ -131,6 +132,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <div class="top-bar">
@@ -142,15 +144,20 @@
 
 
         <div class="main-content">
-                        <div class="auth-container">
+            <div class="auth-container">
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
-                
+
                 <!-- Login Form -->
                 <form id="loginForm" class="auth-form">
                     <h2>Sign In</h2>
                     <input type="email" id="loginEmail" placeholder="Email" required>
                     <input type="password" id="loginPassword" placeholder="Password" required>
+                    <div style="text-align: right; margin-top: -10px;">
+                        <button type="button" id="showForgotBtn"
+                            style="background: none; border: none; color: #000; text-decoration: underline; cursor: pointer; font-size: 12px; padding: 0;">Forgot
+                            Password?</button>
+                    </div>
                     <button type="submit">Sign In</button>
                 </form>
 
@@ -164,12 +171,25 @@
                 </form>
 
                 <div class="auth-toggle">
-                    <button id="toggleAuth">Don't have an account? Sign up</button>
+                    <div id="authToggleContainer">
+                        <button id="toggleAuth">Don't have an account? Sign up</button>
+                    </div>
                 </div>
+
+                <!-- Forgot Password Form (Initially Hidden) -->
+                <form id="forgotPasswordForm" class="auth-form" style="display: none;">
+                    <h2>Reset Password</h2>
+                    <p class="muted small" style="text-align: center; margin-bottom: 10px;">Enter your email to receive
+                        a password reset link.</p>
+                    <input type="email" id="forgotEmail" placeholder="Email" required>
+                    <button type="submit">Send Reset Link</button>
+                    <button type="button" id="backToSignIn" style="background: none; text-decoration: underline;">Back
+                        to Sign In</button>
+                </form>
             </div>
             <script src="js/auth.js"></script>
             <script>
-                                // DOM Elements
+                // DOM Elements
                 const loginForm = document.getElementById('loginForm');
                 const registerForm = document.getElementById('registerForm');
                 const toggleButton = document.getElementById('toggleAuth');
@@ -196,13 +216,13 @@
                     successMessage.style.display = 'none';
                 }
 
-                                // Toggle between login and register forms
+                // Toggle between login and register forms
                 toggleButton.addEventListener('click', () => {
                     const isLogin = loginForm.style.display !== 'none';
                     loginForm.style.display = isLogin ? 'none' : 'flex';
                     registerForm.style.display = isLogin ? 'flex' : 'none';
-                    toggleButton.textContent = isLogin ? 
-                        'Already have an account? Sign in' : 
+                    toggleButton.textContent = isLogin ?
+                        'Already have an account? Sign in' :
                         "Don't have an account? Sign up";
                     clearMessages();
                     // Clear all input fields
@@ -211,11 +231,11 @@
                     });
                 });
 
-                                // Handle Login
+                // Handle Login
                 loginForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     clearMessages();
-                    
+
                     const emailInput = document.getElementById('loginEmail');
                     const passwordInput = document.getElementById('loginPassword');
                     const email = emailInput.value.trim();
@@ -252,22 +272,22 @@
                     }
                 });
 
-                                // Handle Registration
+                // Handle Registration
                 registerForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     clearMessages();
-                    
+
                     const emailInput = document.getElementById('registerEmail');
                     const passwordInput = document.getElementById('registerPassword');
                     const confirmPasswordInput = document.getElementById('confirmPassword');
-                    
+
                     const email = emailInput.value.trim();
                     const password = passwordInput.value;
                     const confirmPassword = confirmPasswordInput.value;
-                    
+
                     // Username will be auto-derived from email prefix
                     const username = email.split('@')[0];
-                    
+
                     console.log('[sign_in.html] Registration form values:', { email, username });
 
                     // Clear previous error states
@@ -310,7 +330,7 @@
                         await AuthService.register(username, email, password);
                         console.log('[sign_in.html] AuthService.register completed successfully');
                         showSuccess('Account created successfully! Redirecting...');
-                        
+
                         // Wait for auth state listener to pick up the new user, then redirect
                         setTimeout(() => {
                             console.log('[sign_in.html] Redirecting to index.html');
@@ -320,7 +340,7 @@
                         showError(error.message || 'Registration failed. Please try again.');
                         submitBtn.textContent = originalText;
                         submitBtn.classList.remove('loading');
-                        
+
                         // Highlight relevant fields based on error
                         if (error.message.includes('email')) {
                             emailInput.classList.add('input-error');
@@ -345,4 +365,5 @@
     </div>
     <script src="js/script.js"></script>
 </body>
+
 </html>
