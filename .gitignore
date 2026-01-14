@@ -1,0 +1,21 @@
+# Backups and temporary files
+*.bak
+*.new
+*.tmp
+*.log
+
+# Firebase local files
+.firebase/
+firestore-debug.log
+firebase-debug.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Node modules (if applicable)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
