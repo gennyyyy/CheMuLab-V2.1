@@ -146,7 +146,7 @@ const ChemistryCraft = {
     // Initialize UI
     init() {
         console.log('[ChemistryCraft] Initializing...');
-        
+
         // Get UI elements with detailed validation
         this.elementGrid = document.getElementById('elementGrid');
         if (!this.elementGrid) {
@@ -236,7 +236,7 @@ const ChemistryCraft = {
         div.className = 'element';
         div.draggable = true;
         div.style.backgroundColor = element.color || '#cccccc';
-        
+
         div.innerHTML = `
             <div class="element-symbol">${element.symbol}</div>
             <div class="element-name">${element.name}</div>
@@ -260,7 +260,7 @@ const ChemistryCraft = {
         if (this.searchInput) {
             this.searchInput.addEventListener('input', event => {
                 const searchTerm = event.target.value.toLowerCase();
-                const filteredElements = this.initialElements.filter(element => 
+                const filteredElements = this.initialElements.filter(element =>
                     element.name.toLowerCase().includes(searchTerm) ||
                     element.symbol.toLowerCase().includes(searchTerm) ||
                     element.type.toLowerCase().includes(searchTerm)
@@ -465,7 +465,7 @@ const ChemistryCraft = {
         event.stopPropagation();
         const slot = event.target.closest('.crafting-slot');
         if (!slot) return;
-        
+
         slot.classList.remove('drag-over');
 
         try {
@@ -480,15 +480,15 @@ const ChemistryCraft = {
                 console.error('[ChemistryCraft] Invalid element data:', element);
                 return;
             }
-            
+
             // Clear existing content
             slot.innerHTML = '';
-            
+
             // Create and add the dropped element
             const elementDiv = this.createElementDiv(element);
             elementDiv.draggable = false; // Prevent dragging once dropped
             slot.appendChild(elementDiv);
-            
+
             // Store element data
             slot.dataset.element = elementData;
 
@@ -627,7 +627,7 @@ const ChemistryCraft = {
             // Add a check mark overlay to the cloud instead of replacing it
             indicator.classList.remove('cc-header-saving');
             indicator.classList.add('cc-header-saved');
-            
+
             // Add check overlay if it doesn't exist
             if (!indicator.querySelector('.cc-header-check-overlay')) {
                 const checkOverlay = document.createElement('div');
@@ -651,12 +651,12 @@ const ChemistryCraft = {
     // Migrate pending discoveries to cloud storage when user signs in
     async migratePendingDiscoveries(currentUser) {
         if (!currentUser?.uid) return;
-        
+
         try {
             console.log('[ChemistryCraft] Migrating pending discoveries...');
             const pendingKey = `chemulab_pending_discoveries`;
             const pendingRaw = localStorage.getItem(pendingKey);
-            
+
             if (!pendingRaw) {
                 console.log('[ChemistryCraft] No pending discoveries to migrate');
                 return;
@@ -695,7 +695,7 @@ const ChemistryCraft = {
 
             // Clear pending discoveries since they're now in cloud
             localStorage.removeItem(pendingKey);
-            
+
         } catch (error) {
             console.warn('[ChemistryCraft] Failed to migrate pending discoveries:', error);
         }
@@ -704,7 +704,7 @@ const ChemistryCraft = {
     // Get current discoveries
     async getDiscoveries() {
         if (!this.discoveriesList) return [];
-        
+
         return Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
             .map(item => ({
                 symbol: item.querySelector('.element-symbol')?.textContent || '',
@@ -717,19 +717,19 @@ const ChemistryCraft = {
     // Restore discoveries from backup
     async restoreDiscoveries(discoveries) {
         if (!Array.isArray(discoveries) || !discoveries.length) return;
-        
+
         console.log('[ChemistryCraft] Restoring', discoveries.length, 'discoveries from backup');
-        
+
         // Clear current list
         if (this.discoveriesList) {
             this.discoveriesList.innerHTML = '';
         }
-        
+
         // Add each discovery back
         for (const discovery of discoveries) {
             await this.addDiscoveryToUI(discovery);
         }
-        
+
         // Save to Firestore
         await this.saveDiscoveries();
     },
@@ -825,6 +825,7 @@ const ChemistryCraft = {
             // If still nothing, do not auto-create/overwrite the user's document with an empty discoveries array.
             if (discoveries.length === 0) {
                 console.log('[ChemistryCraft] No discoveries found in any source (skipping automatic initialization to avoid overwriting existing data).');
+                this.stopLoading();
                 return;
             }
 
@@ -845,7 +846,7 @@ const ChemistryCraft = {
                     console.warn('[ChemistryCraft] Skipping invalid or duplicate discovery:', discovery);
                 }
             }
-            
+
             console.log(`[ChemistryCraft] Successfully loaded ${loadedCount} discoveries`);
             if (loadedCount > 0) {
                 this.stopLoading();
@@ -1017,7 +1018,7 @@ const ChemistryCraft = {
             batch.set(db.collection('discoveries').doc(currentUser.uid), saveData, { merge: true });
 
             // Save local backup
-            localStorage.setItem('chemulab_discoveries_backup_' + currentUser.uid, 
+            localStorage.setItem('chemulab_discoveries_backup_' + currentUser.uid,
                 JSON.stringify(mergedDiscoveries));
 
             // Commit the batch
@@ -1042,14 +1043,14 @@ const ChemistryCraft = {
                         },
                         discoveries: mergedDiscoveries
                     };
-                    
+
                     DiscoveryService.saveUserDataLocal(currentUser.uid, userData);
-                    
+
                     // Dispatch progress update event for ProgressTracker to listen
-                    document.dispatchEvent(new CustomEvent('progressUpdate', { 
-                        detail: userData.progress 
+                    document.dispatchEvent(new CustomEvent('progressUpdate', {
+                        detail: userData.progress
                     }));
-                    
+
                     console.log('[ChemistryCraft] Updated DiscoveryService with progress:', userData.progress);
                 } catch (err) {
                     console.warn('[ChemistryCraft] Failed to update DiscoveryService:', err);
@@ -1071,63 +1072,102 @@ const ChemistryCraft = {
         }
     },
 
-    // Basic combinations lookup table
+    // Basic combinations lookup table (alphabetical keys)
     combinations: {
-        // Water and related compounds
         'H+O': { symbol: 'H2O', name: 'Water', color: '#B3E0FF', type: 'compound' },
-        'O+H': { symbol: 'H2O', name: 'Water', color: '#B3E0FF', type: 'compound' },
-        
-        // Carbon compounds
         'C+O': { symbol: 'CO2', name: 'Carbon Dioxide', color: '#A9A9A9', type: 'compound' },
-        'O+C': { symbol: 'CO2', name: 'Carbon Dioxide', color: '#A9A9A9', type: 'compound' },
-        
-        // Nitrogen compounds
         'H+N': { symbol: 'NH3', name: 'Ammonia', color: '#CC99FF', type: 'compound' },
-        'N+H': { symbol: 'NH3', name: 'Ammonia', color: '#CC99FF', type: 'compound' },
         'N+O': { symbol: 'NO2', name: 'Nitrogen Dioxide', color: '#FF9999', type: 'compound' },
-        'O+N': { symbol: 'NO2', name: 'Nitrogen Dioxide', color: '#FF9999', type: 'compound' },
-        
-        // Sulfur compounds
         'H+S': { symbol: 'H2S', name: 'Hydrogen Sulfide', color: '#FFFF99', type: 'compound' },
-        'S+H': { symbol: 'H2S', name: 'Hydrogen Sulfide', color: '#FFFF99', type: 'compound' },
-        'S+O': { symbol: 'SO2', name: 'Sulfur Dioxide', color: '#FFDB4D', type: 'compound' },
         'O+S': { symbol: 'SO2', name: 'Sulfur Dioxide', color: '#FFDB4D', type: 'compound' },
-        
-        // Phosphorus compounds
-        'P+O': { symbol: 'P2O5', name: 'Phosphorus Pentoxide', color: '#FFB366', type: 'compound' },
         'O+P': { symbol: 'P2O5', name: 'Phosphorus Pentoxide', color: '#FFB366', type: 'compound' },
-        
-        // Halogen compounds
-        'H+F': { symbol: 'HF', name: 'Hydrofluoric Acid', color: '#CCFF99', type: 'compound' },
         'F+H': { symbol: 'HF', name: 'Hydrofluoric Acid', color: '#CCFF99', type: 'compound' },
-        'H+Cl': { symbol: 'HCl', name: 'Hydrochloric Acid', color: '#90EE90', type: 'compound' },
         'Cl+H': { symbol: 'HCl', name: 'Hydrochloric Acid', color: '#90EE90', type: 'compound' },
-        'H+Br': { symbol: 'HBr', name: 'Hydrobromic Acid', color: '#BC8F8F', type: 'compound' },
         'Br+H': { symbol: 'HBr', name: 'Hydrobromic Acid', color: '#BC8F8F', type: 'compound' },
         'H+I': { symbol: 'HI', name: 'Hydroiodic Acid', color: '#9370DB', type: 'compound' },
-        'I+H': { symbol: 'HI', name: 'Hydroiodic Acid', color: '#9370DB', type: 'compound' },
-        
-        // Metal oxides
         'Na+O': { symbol: 'Na2O', name: 'Sodium Oxide', color: '#FFB366', type: 'compound' },
-        'O+Na': { symbol: 'Na2O', name: 'Sodium Oxide', color: '#FFB366', type: 'compound' },
         'K+O': { symbol: 'K2O', name: 'Potassium Oxide', color: '#FF99CC', type: 'compound' },
-        'O+K': { symbol: 'K2O', name: 'Potassium Oxide', color: '#FF99CC', type: 'compound' },
         'Fe+O': { symbol: 'Fe2O3', name: 'Iron(III) Oxide', color: '#CD853F', type: 'compound' },
-        'O+Fe': { symbol: 'Fe2O3', name: 'Iron(III) Oxide', color: '#CD853F', type: 'compound' },
-        
-        // Metal hydroxides
-        'Na+H2O': { symbol: 'NaOH', name: 'Sodium Hydroxide', color: '#FFB366', type: 'compound' },
         'H2O+Na': { symbol: 'NaOH', name: 'Sodium Hydroxide', color: '#FFB366', type: 'compound' },
-        'K+H2O': { symbol: 'KOH', name: 'Potassium Hydroxide', color: '#FF99CC', type: 'compound' },
-        'H2O+K': { symbol: 'KOH', name: 'Potassium Hydroxide', color: '#FF99CC', type: 'compound' }
+        'H2O+K': { symbol: 'KOH', name: 'Potassium Hydroxide', color: '#FF99CC', type: 'compound' },
+        'Cl+Na': { symbol: 'NaCl', name: 'Sodium Chloride', color: '#FFFFFF', type: 'compound' }
+    },
+
+    // New: Chemical Category Logic for Dynamic Combinations
+    chemicalCategories: {
+        'H': 'nonmetal', 'He': 'noble-gas', 'Li': 'alkali-metal', 'Be': 'alkaline-earth',
+        'B': 'metalloid', 'C': 'nonmetal', 'N': 'nonmetal', 'O': 'nonmetal', 'F': 'halogen',
+        'Ne': 'noble-gas', 'Na': 'alkali-metal', 'Mg': 'alkaline-earth', 'Al': 'post-transition',
+        'Si': 'metalloid', 'P': 'nonmetal', 'S': 'nonmetal', 'Cl': 'halogen', 'Ar': 'noble-gas',
+        'K': 'alkali-metal', 'Ca': 'alkaline-earth', 'Sc': 'transition', 'Ti': 'transition',
+        'V': 'transition', 'Cr': 'transition', 'Mn': 'transition', 'Fe': 'transition',
+        'Co': 'transition', 'Ni': 'transition', 'Cu': 'transition', 'Zn': 'transition',
+        'Ga': 'post-transition', 'Ge': 'metalloid', 'As': 'metalloid', 'Se': 'nonmetal',
+        'Br': 'halogen', 'Kr': 'noble-gas', 'Ag': 'transition', 'Au': 'transition',
+        'Pt': 'transition', 'Hg': 'transition', 'Pb': 'post-transition', 'Sn': 'post-transition'
+    },
+
+    // New: Helper to blend colors
+    blendColors(c1, c2) {
+        const parseHex = c => parseInt((c && c.startsWith('#')) ? c.slice(1) : 'cccccc', 16);
+        const r = c => (parseHex(c) >> 16) & 0xFF;
+        const g = c => (parseHex(c) >> 8) & 0xFF;
+        const b = c => parseHex(c) & 0xFF;
+        const mix = (v1, v2) => Math.round((v1 + v2) / 2).toString(16).padStart(2, '0');
+        return `#${mix(r(c1), r(c2))}${mix(g(c1), g(c2))}${mix(b(c1), b(c2))}`;
+    },
+
+    // New: Dynamic generator for all possible combinations
+    generateDynamicCombination(el1, el2) {
+        const cat1 = this.chemicalCategories[el1.symbol] || el1.type || 'unknown';
+        const cat2 = this.chemicalCategories[el2.symbol] || el2.type || 'unknown';
+        let name, symbol, type;
+        const color = this.blendColors(el1.color, el2.color);
+
+        if (cat1 === 'noble-gas' || cat2 === 'noble-gas') {
+            name = `${el1.name}-${el2.name} Mixture`;
+            symbol = `${el1.symbol}${el2.symbol}`;
+            type = 'mixture';
+        } else if (cat1.includes('metal') && cat2.includes('metal')) {
+            name = `${el1.name}-${el2.name} Alloy`;
+            symbol = `${el1.symbol}${el2.symbol}`;
+            type = 'alloy';
+        } else if ((cat1.includes('metal') && (cat2 === 'halogen' || cat2 === 'nonmetal')) ||
+            (cat2.includes('metal') && (cat1 === 'halogen' || cat1 === 'nonmetal'))) {
+            const metal = cat1.includes('metal') ? el1 : el2;
+            const nonMetal = cat1.includes('metal') ? el2 : el1;
+            const suffix = nonMetal.name === 'Oxygen' ? 'Oxide' :
+                nonMetal.name === 'Chlorine' ? 'Chloride' :
+                    nonMetal.name === 'Fluorine' ? 'Fluoride' :
+                        nonMetal.name === 'Bromine' ? 'Bromide' :
+                            nonMetal.name === 'Iodine' ? 'Iodide' :
+                                nonMetal.name === 'Sulfur' ? 'Sulfide' :
+                                    nonMetal.name + 'ide';
+            name = `${metal.name} ${suffix}`;
+            symbol = `${metal.symbol}${nonMetal.symbol}`;
+            type = 'compound';
+        } else {
+            name = `${el1.name} ${el2.name} Compound`;
+            symbol = `${el1.symbol}${el2.symbol}`;
+            type = 'compound';
+        }
+
+        return { symbol, name, color, type };
     },
 
     // Attempt to combine elements
     attemptCombination(element1, element2) {
         console.log('[ChemistryCraft] Attempting combination:', element1, element2);
-        
-        const combinationKey = `${element1.symbol}+${element2.symbol}`;
-        const result = this.combinations[combinationKey];
+
+        // Normalize key (sort alphabetically)
+        const symbols = [element1.symbol, element2.symbol].sort();
+        const combinationKey = symbols.join('+');
+
+        // Try hardcoded first, then dynamic
+        let result = this.combinations[combinationKey];
+        if (!result) {
+            result = this.generateDynamicCombination(element1, element2);
+        }
 
         if (result) {
             // Clear crafting slots
@@ -1192,7 +1232,7 @@ const ChemistryCraft = {
             // Check if this discovery already exists
             const existing = Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
                 .find(item => item.querySelector('.element-symbol')?.textContent === element.symbol);
-            
+
             if (existing) {
                 console.log('[ChemistryCraft] Discovery already exists in UI:', element.symbol);
                 return;
@@ -1200,20 +1240,20 @@ const ChemistryCraft = {
 
             const discoveryItem = document.createElement('div');
             discoveryItem.className = 'discovery-item';
-            
+
             // Store discovery date
             const now = new Date().toISOString();
             discoveryItem.dataset.dateDiscovered = element.dateDiscovered || now;
             discoveryItem.dataset.lastUpdated = now;
-            
+
             discoveryItem.innerHTML = `
                 <span class="element-symbol">${element.symbol || ''}</span>
                 <span class="element-name">${element.name || ''}</span>
             `;
-            
+
             this.discoveriesList.appendChild(discoveryItem);
             console.log('[ChemistryCraft] Added discovery to UI:', element.symbol);
-            
+
             // Save to storage
             this.saveDiscoveries().catch(err => {
                 console.error('[ChemistryCraft] Failed to save discovery:', err);
@@ -1245,7 +1285,7 @@ const ChemistryCraft = {
     // Get current discoveries
     async getDiscoveries() {
         if (!this.discoveriesList) return [];
-        
+
         return Array.from(this.discoveriesList.querySelectorAll('.discovery-item'))
             .map(item => ({
                 symbol: item.querySelector('.element-symbol')?.textContent || '',
@@ -1259,7 +1299,7 @@ const ChemistryCraft = {
     async createBackup(force = false) {
         const user = window.firebase?.auth?.currentUser;
         if (!user) return;
-        
+
         const discoveries = await this.getDiscoveries();
         if (!discoveries || discoveries.length === 0) return;
 
@@ -1267,26 +1307,26 @@ const ChemistryCraft = {
             // Store current backup
             const backupKey = `chemulab_discoveries_backup_${user.uid}`;
             localStorage.setItem(backupKey, JSON.stringify(discoveries));
-            
+
             // Store a daily backup
             const now = new Date();
             const dailyBackupKey = `chemulab_discoveries_backup_${user.uid}_${now.getFullYear()}_${now.getMonth()}_${now.getDate()}`;
-            
+
             // Only create daily backup if it doesn't exist or forced
             if (force || !localStorage.getItem(dailyBackupKey)) {
                 localStorage.setItem(dailyBackupKey, JSON.stringify(discoveries));
                 console.log('[ChemistryCraft] Created daily backup:', dailyBackupKey);
             }
-            
+
             // Store a weekly backup
-            const weeklyBackupKey = `chemulab_discoveries_backup_${user.uid}_${now.getFullYear()}_${now.getMonth()}_${Math.floor(now.getDate()/7)}`;
-            
+            const weeklyBackupKey = `chemulab_discoveries_backup_${user.uid}_${now.getFullYear()}_${now.getMonth()}_${Math.floor(now.getDate() / 7)}`;
+
             // Only create weekly backup if it doesn't exist or forced
             if (force || !localStorage.getItem(weeklyBackupKey)) {
                 localStorage.setItem(weeklyBackupKey, JSON.stringify(discoveries));
                 console.log('[ChemistryCraft] Created weekly backup:', weeklyBackupKey);
             }
-            
+
             console.log('[ChemistryCraft] Created backups of', discoveries.length, 'discoveries');
             return true;
         } catch (error) {
@@ -1299,26 +1339,26 @@ const ChemistryCraft = {
     async restoreFromBackup() {
         const user = firebase.auth().currentUser;
         if (!user) return false;
-        
+
         const backup = localStorage.getItem('chemulab_discoveries_backup_' + user.uid);
         if (!backup) return false;
-        
+
         try {
             const discoveries = JSON.parse(backup);
             if (!Array.isArray(discoveries) || discoveries.length === 0) return false;
-            
+
             console.log('[ChemistryCraft] Restoring', discoveries.length, 'discoveries from backup');
-            
+
             // Clear current list
             if (this.discoveriesList) {
                 this.discoveriesList.innerHTML = '';
             }
-            
+
             // Add each discovery back
             for (const discovery of discoveries) {
                 this.addDiscoveryToUI(discovery);
             }
-            
+
             // Save to Firestore
             await this.saveDiscoveries();
             return true;
@@ -1501,10 +1541,10 @@ const ChemistryCraft = {
     },
 };
 
-    // Initialize when DOM is ready
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[ChemistryCraft] DOM ready, initializing basic features...');
-    
+
     // Initialize core functionality immediately
     if (!ChemistryCraft.init()) {
         console.error('[ChemistryCraft] Failed to initialize');
@@ -1532,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const userDoc = await db.collection('progress')
                         .doc(window.firebase.auth().currentUser.uid)
                         .get();
-                    
+
                     const cloudDiscoveries = userDoc.data()?.discoveries || [];
                     if (cloudDiscoveries.length !== currentDiscoveries.length) {
                         console.warn('[ChemistryCraft] Data verification failed - attempting recovery');
@@ -1553,17 +1593,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[ChemistryCraft] Setting up Firebase auth listener...');
         window.firebase.auth().onAuthStateChanged(async user => {
             console.log('[ChemistryCraft] Auth state changed:', user ? `User logged in: ${user.uid}` : 'No user');
-            
+
             if (user?.uid) {
                 console.log('[ChemistryCraft] Loading discoveries for user:', user.uid);
                 // Add a small delay to ensure Firestore is ready
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 await ChemistryCraft.loadSavedDiscoveries();
-                
+
                 // Verify the load was successful
                 const discoveries = await ChemistryCraft.getDiscoveries();
                 console.log('[ChemistryCraft] Loaded discoveries count:', discoveries?.length || 0);
-                
+
                 if (!discoveries || discoveries.length === 0) {
                     // Try to recover from backup in localStorage
                     const localBackup = localStorage.getItem('chemulab_discoveries_backup_' + user.uid);
@@ -1577,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (ChemistryCraft.discoveriesList && firebase.auth().currentUser) {
                     const currentDiscoveries = await ChemistryCraft.getDiscoveries();
                     if (currentDiscoveries && currentDiscoveries.length > 0) {
-                        localStorage.setItem('chemulab_discoveries_backup_' + firebase.auth().currentUser.uid, 
+                        localStorage.setItem('chemulab_discoveries_backup_' + firebase.auth().currentUser.uid,
                             JSON.stringify(currentDiscoveries));
                     }
                 }
