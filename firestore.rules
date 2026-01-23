@@ -94,5 +94,28 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // Volcano experiment multiplayer games
+    match /volcanoGames/{gameId} {
+      // Anyone authenticated can create a game (as player1)
+      allow create: if request.auth != null
+                    && request.resource.data.player1Uid == request.auth.uid;
+
+      // Only participants can read the game
+      allow read: if request.auth != null
+                  && (resource.data.player1Uid == request.auth.uid 
+                      || resource.data.player2Uid == request.auth.uid
+                      || resource.data.player2Uid == null);
+
+      // Only participants can update (for joining and gameplay)
+      allow update: if request.auth != null
+                    && (resource.data.player1Uid == request.auth.uid 
+                        || resource.data.player2Uid == request.auth.uid
+                        || (resource.data.player2Uid == null && request.resource.data.player2Uid == request.auth.uid));
+
+      // Only player1 can delete the game
+      allow delete: if request.auth != null
+                    && resource.data.player1Uid == request.auth.uid;
+    }
   }
 }

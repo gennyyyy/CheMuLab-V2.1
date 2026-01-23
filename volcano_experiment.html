@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volcano Experiment - CheMuLab</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/route-protection.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #f43f5e;
+            --accent: #10b981;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --p1-color: #ff4e50;
+            --p2-color: #4facfe;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+        }
+
+        .game-area {
+            max-width: 95%;
+            width: 1000px;
+            margin: 40px auto;
+            background: var(--surface);
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+            position: relative;
+            min-height: 600px;
+            overflow: hidden;
+        }
+
+        .game-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--p1-color), var(--p2-color));
+        }
+
+        h1 {
+            font-size: 3em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #333 0%, #666 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Screens */
+        .game-screen {
+            display: none;
+            animation: screenIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .game-screen.active {
+            display: block;
+        }
+
+        @keyframes screenIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Lobby Styles */
+        .lobby-options {
+            display: flex;
+            gap: 30px;
+            max-width: 800px;
+            margin: 50px auto;
+            justify-content: center;
+        }
+
+        .lobby-card {
+            flex: 1;
+            padding: 30px;
+            background: var(--surface);
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .lobby-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-light);
+        }
+
+        .lobby-card h3 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .lobby-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .lobby-input-group input {
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            text-transform: uppercase;
+            font-family: inherit;
+            font-size: 1.4em;
+            text-align: center;
+            font-weight: 800;
+            letter-spacing: 4px;
+            transition: border-color 0.2s;
+        }
+
+        .lobby-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Waiting Screen */
+        .room-code-tag {
+            font-size: 3.5em;
+            font-weight: 800;
+            color: var(--primary);
+            background: #f1f5f9;
+            padding: 20px 40px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 30px 0;
+            letter-spacing: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Game Screen Collaborative */
+        .players-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .player-panel {
+            padding: 20px 30px;
+            border-radius: 20px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            transition: all 0.3s;
+            min-width: 200px;
+        }
+
+        .player-panel.you::after {
+            content: 'YOU';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.7em;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .player-panel.player1 {
+            border-color: var(--p1-color);
+        }
+
+        .player-panel.player2 {
+            border-color: var(--p2-color);
+        }
+
+        .player-panel.active {
+            background: #fff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: scale(1.05);
+            border-width: 4px;
+        }
+
+        .shared-progress-container {
+            margin: 30px auto;
+            max-width: 700px;
+            background: #e2e8f0;
+            border-radius: 30px;
+            height: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f43f5e, #fb923c, #facc15);
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 30px;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: 700;
+            color: #1e293b;
+            mix-blend-mode: multiply;
+        }
+
+        .ingredient-collected-shared {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 20px;
+        }
+
+        .shared-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .shared-slot .count {
+            color: var(--primary);
+            font-size: 1.8em;
+            font-weight: 800;
+        }
+
+        .turn-indicator {
+            font-size: 1.3em;
+            margin: 20px 0;
+            padding: 15px 30px;
+            border-radius: 16px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 30px auto;
+            max-width: 600px;
+        }
+
+        .ingredient-card {
+            aspect-ratio: 1;
+            background: var(--surface);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2em;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .ingredient-card:hover:not(.collected) {
+            transform: scale(1.1) rotate(3deg);
+            border-color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .ingredient-card.collected {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: scale(0.85);
+            background: #f8fafc;
+        }
+
+        .ingredient-card.p1-collected {
+            border: 4px solid var(--p1-color);
+        }
+
+        .ingredient-card.p2-collected {
+            border: 4px solid var(--p2-color);
+        }
+
+        .ingredient-card .name {
+            font-size: 0.35em;
+            margin-top: 5px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .volcano-container {
+            margin: 50px auto;
+            position: relative;
+            height: 220px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .volcano {
+            width: 180px;
+            height: 140px;
+            background: linear-gradient(180deg, #4b2c20 0%, #2d1b10 100%);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+            position: relative;
+            z-index: 2;
+        }
+
+        .volcano::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20%;
+            background: #1a0f0a;
+            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 80% 80%, 60% 100%, 40% 80%, 20% 100%, 0% 80%);
+        }
+
+        .lava {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 0;
+            background: linear-gradient(180deg, #ff4500, #ff8c00, transparent);
+            border-radius: 40px;
+            opacity: 0;
+            transition: all 1s ease;
+            z-index: 1;
+        }
+
+        .lava.erupting {
+            height: 200px;
+            top: -150px;
+            opacity: 1;
+            animation: flow 2s infinite ease-in-out;
+        }
+
+        @keyframes flow {
+
+            0%,
+            100% {
+                transform: translateX(-50%) scaleX(1);
+            }
+
+            50% {
+                transform: translateX(-50%) scaleX(1.2);
+            }
+        }
+
+        .lava-particles {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            opacity: 0;
+            z-index: 3;
+        }
+
+        .lava-particles.erupting {
+            opacity: 1;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.1em;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: inherit;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.23);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .game-over-panel {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 60px;
+            border-radius: 40px;
+            z-index: 100;
+            width: 80%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: var(--text-main);
+        }
+
+        @media (max-width: 800px) {
+            .lobby-options {
+                flex-direction: column;
+            }
+
+            .players-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .ingredient-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+
+            .ingredient-card {
+                font-size: 1.8em;
+            }
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff4500;
+            border-radius: 50%;
+            animation: particle 1.5s ease-out infinite;
+        }
+
+        .particle:nth-child(1) {
+            left: 20%;
+            animation-delay: 0s;
+        }
+
+        .particle:nth-child(2) {
+            left: 40%;
+            animation-delay: 0.2s;
+        }
+
+        .particle:nth-child(3) {
+            left: 60%;
+            animation-delay: 0.4s;
+        }
+
+        .particle:nth-child(4) {
+            left: 80%;
+            animation-delay: 0.1s;
+        }
+
+        .particle:nth-child(5) {
+            left: 50%;
+            animation-delay: 0.3s;
+        }
+
+        @keyframes particle {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-150px) scale(0);
+                opacity: 0;
+            }
+        }
+    </style>
+</head> width: 8px;
+height: 8px;
+background: #ff4500;
+border-radius: 50%;
+animation: particle 1.5s ease-out infinite;
+}
+
+@keyframes particle {
+0% {
+transform: translateY(0);
+opacity: 1;
+}
+
+100% {
+transform: translateY(-100px) scale(0);
+opacity: 0;
+}
+}
+
+.particle:nth-child(1) {
+left: 20%;
+animation-delay: 0s;
+}
+
+.particle:nth-child(2) {
+left: 40%;
+animation-delay: 0.2s;
+}
+
+.particle:nth-child(3) {
+left: 60%;
+animation-delay: 0.4s;
+}
+
+.particle:nth-child(4) {
+left: 80%;
+animation-delay: 0.1s;
+}
+
+.particle:nth-child(5) {
+left: 50%;
+animation-delay: 0.3s;
+}
+
+.btn {
+padding: 12px 24px;
+border: none;
+border-radius: 8px;
+cursor: pointer;
+font-weight: bold;
+transition: background 0.2s;
+}
+
+.btn-primary {
+background: #007bff;
+color: white;
+}
+
+.btn-primary:hover {
+background: #0056b3;
+}
+
+.btn-secondary {
+background: #6c757d;
+color: white;
+}
+
+.btn-secondary:hover {
+background: #5a6268;
+}
+
+.btn-outline {
+background: transparent;
+border: 2px solid #007bff;
+color: #007bff;
+}
+
+.btn-outline:hover {
+background: #007bff;
+color: white;
+}
+
+.game-over-panel {
+display: none;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(0, 0, 0, 0.85);
+color: white;
+padding: 40px;
+border-radius: 20px;
+z-index: 100;
+width: 80%;
+}
+
+@media (max-width: 600px) {
+.ingredient-grid {
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+}
+
+.ingredient-card {
+font-size: 1.5em;
+}
+}
+</style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="top-bar">
+            <span class="logo">CheMuLab</span>
+            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="nav-links"></div>
+            <div id="userStatus" class="sign-in">
+                <span id="userStatusText"></span>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <a href="index.html" class="sidebar-item">
+                <div class="sidebar-icon">&#127968;</div> Home
+            </a>
+            <a href="your_lab.html" class="sidebar-item">
+                <div class="sidebar-icon">&#129514;</div> Your Lab
+            </a>
+            <a href="friends.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128101;</div> Friends
+            </a>
+            <a href="elements.html" class="sidebar-item">
+                <div class="sidebar-icon">&#9883;</div> Elements
+            </a>
+            <a href="games.html" class="sidebar-item active">
+                <div class="sidebar-icon">&#127918;</div> Games
+            </a>
+            <a href="profile.html" class="sidebar-item">
+                <div class="sidebar-icon">&#128100;</div> Profile
+            </a>
+            <a href="about.html" class="sidebar-item">
+                <div class="sidebar-icon">&#8505;</div> About
+            </a>
+        </div>
+
+        <div class="main-content">
+            <div style="margin-bottom: 20px;">
+                <a href="games.html" style="text-decoration:none; color:#000;">&larr; Back to Games</a>
+            </div>
+
+            <div class="game-area">
+                <h1>🌋 Volcano Experiment</h1>
+                <p style="color: #666; margin-bottom: 15px;">A collaborative real-time experience for two players!</p>
+
+                <!-- LOBBY SCREEN -->
+                <div id="lobbyScreen" class="game-screen active">
+                    <div class="instructions">
+                        <strong>Collaborative Mode:</strong> Work together with a friend to collect all 16 ingredients.
+                        When both of you contribute your parts, the volcano will erupt!
+                    </div>
+                    <div class="lobby-options">
+                        <div class="lobby-card">
+                            <h3>Create a New Room</h3>
+                            <p>Start a new session and invite a friend.</p>
+                            <button id="createGameBtn" class="btn btn-primary"
+                                style="width:100%; margin-top:10px;">Create Game</button>
+                        </div>
+                        <div style="text-align:center; color:#999; font-weight:bold;">OR</div>
+                        <div class="lobby-card">
+                            <h3>Join a Room</h3>
+                            <p>Enter the 6-character code from your friend.</p>
+                            <div class="lobby-input-group">
+                                <input type="text" id="joinCodeInput" maxlength="6" placeholder="CODE">
+                                <button id="joinGameBtn" class="btn btn-outline">Join</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WAITING SCREEN -->
+                <div id="waitingScreen" class="game-screen">
+                    <h2>Waiting for Player 2...</h2>
+                    <p>Share this room code with your friend:</p>
+                    <div class="room-code-tag" id="roomCodeDisplay">------</div>
+                    <div>
+                        <button id="copyCodeBtn" class="btn btn-outline" style="margin-bottom:20px;">📋 Copy
+                            Code</button>
+                    </div>
+                    <button id="cancelWaitBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+
+                <!-- GAME SCREEN -->
+                <div id="gameScreen" class="game-screen">
+                    <div class="players-container">
+                        <div class="player-panel player1" id="player1Panel">
+                            <h3>🔴 Player 1</h3>
+                            <span id="player1Name" style="font-weight:bold;">Waiting...</span>
+                        </div>
+                        <div class="player-panel player2" id="player2Panel">
+                            <h3>🔵 Player 2</h3>
+                            <span id="player2Name" style="font-weight:bold;">Waiting...</span>
+                        </div>
+                    </div>
+
+                    <div class="shared-progress-container">
+                        <div id="progressFill" class="progress-fill"></div>
+                        <div id="progressText" class="progress-text">0/16 ingredients collected</div>
+                    </div>
+
+                    <div class="ingredient-collected-shared">
+                        <div class="shared-slot">🧂 Soda: <span class="count" id="shared-soda">0</span>/4</div>
+                        <div class="shared-slot">🫗 Vinegar: <span class="count" id="shared-vinegar">0</span>/4</div>
+                        <div class="shared-slot">🧴 Soap: <span class="count" id="shared-soap">0</span>/4</div>
+                        <div class="shared-slot">🔴 Color: <span class="count" id="shared-color">0</span>/4</div>
+                    </div>
+
+                    <div class="turn-indicator" id="turnIndicator">Waiting for turn...</div>
+
+                    <div class="ingredient-grid" id="ingredientGrid">
+                        <!-- Rednered via JS -->
+                    </div>
+
+                    <div class="volcano-container">
+                        <div class="volcano">
+                            <div class="lava" id="lava"></div>
+                            <div class="lava-particles" id="lavaParticles">
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                                <div class="particle"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="leaveGameBtn" class="btn btn-secondary">Leave Game</button>
+
+                    <div id="gameOverPanel" class="game-over-panel">
+                        <h2>🏆 Mission Accomplished!</h2>
+                        <p style="font-size: 1.2em; margin: 20px 0;">You worked together perfectly!</p>
+                        <p>The volcano has successfully erupted thanks to your teamwork.</p>
+                        <button id="playAgainBtn" class="btn btn-primary" style="margin-top:20px;">Back to
+                            Lobby</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script src="js/volcano-multiplayer.js"></script>
+</body>
+
+</html>
