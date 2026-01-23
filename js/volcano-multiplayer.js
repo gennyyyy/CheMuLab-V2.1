@@ -247,6 +247,15 @@
                 <span class="name">${ing.name}</span>
             `;
             if (!ing.collected && isMyTurn()) {
+                card.draggable = true;
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', index);
+                    card.classList.add('dragging');
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+                // Fallback click
                 card.addEventListener('click', () => collectIngredient(index));
             }
             elements.ingredientGrid.appendChild(card);
@@ -269,7 +278,7 @@
         const emoji = playerNum === 1 ? '🔴' : '🔵';
 
         if (isMyTurnNow) {
-            elements.turnIndicator.textContent = `${emoji} Your turn! Click an ingredient to add it.`;
+            elements.turnIndicator.textContent = `${emoji} Your turn! Drag an ingredient to the volcano.`;
             elements.turnIndicator.style.background = '#c8e6c9';
         } else {
             elements.turnIndicator.textContent = `${emoji} ${playerName}'s turn...`;
@@ -296,6 +305,35 @@
         const percentage = (total / 16) * 100;
         elements.progressFill.style.width = percentage + '%';
         elements.progressText.textContent = `${total}/16 ingredients collected`;
+    }
+
+    // Toss animation for added life-likeness
+    function tossIngredient(emoji, x, y) {
+        const tosser = document.createElement('div');
+        tosser.textContent = emoji;
+        tosser.style.position = 'fixed';
+        tosser.style.left = x + 'px';
+        tosser.style.top = y + 'px';
+        tosser.style.fontSize = '2rem';
+        tosser.style.zIndex = '2000';
+        tosser.style.pointerEvents = 'none';
+        tosser.style.transition = 'all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+        document.body.appendChild(tosser);
+
+        // Target is the center of the volcano
+        const volcanoRect = elements.volcanoContainer.getBoundingClientRect();
+        const targetX = volcanoRect.left + volcanoRect.width / 2;
+        const targetY = volcanoRect.top + volcanoRect.height / 2;
+
+        requestAnimationFrame(() => {
+            tosser.style.left = targetX + 'px';
+            tosser.style.top = targetY + 'px';
+            tosser.style.transform = 'scale(0.5) rotate(360deg)';
+            tosser.style.opacity = '0';
+        });
+
+        setTimeout(() => tosser.remove(), 700);
     }
 
     // Collect an ingredient
@@ -403,10 +441,35 @@
             sharedColor: document.getElementById('shared-color'),
             progressFill: document.getElementById('progressFill'),
             progressText: document.getElementById('progressText'),
+            volcanoContainer: document.querySelector('.volcano-container'),
             lava: document.getElementById('lava'),
             lavaParticles: document.getElementById('lavaParticles'),
             gameOverPanel: document.getElementById('gameOverPanel')
         };
+
+        // Drag and Drop Listeners
+        elements.volcanoContainer?.addEventListener('dragover', (e) => {
+            if (!isMyTurn()) return;
+            e.preventDefault();
+            elements.volcanoContainer.classList.add('drop-zone-active');
+        });
+
+        elements.volcanoContainer?.addEventListener('dragleave', () => {
+            elements.volcanoContainer.classList.remove('drop-zone-active');
+        });
+
+        elements.volcanoContainer?.addEventListener('drop', (e) => {
+            if (!isMyTurn()) return;
+            e.preventDefault();
+            elements.volcanoContainer.classList.remove('drop-zone-active');
+
+            const index = parseInt(e.dataTransfer.getData('text/plain'));
+            if (!isNaN(index)) {
+                const ing = currentGame.grid[index];
+                tossIngredient(ing.emoji, e.clientX, e.clientY);
+                collectIngredient(index);
+            }
+        });
 
         // Event listeners
         elements.createGameBtn?.addEventListener('click', createGame);
