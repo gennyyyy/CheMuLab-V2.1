@@ -186,6 +186,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 50%;
 }
 
 .main-content {
@@ -1535,64 +1536,5 @@ body {
         left: 20px;
         bottom: 100px;
         height: 60vh;
-    }
-}
-
-/* NUCLEAR MOBILE FIXES - OVERRIDES ALL PREVIOUS RULES */
-@media (max-width: 900px) {
-    .app-container {
-        min-height: 100vh;
-        overflow-x: hidden;
-        position: relative;
-    }
-
-    .top-bar {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 99999 !important; /* Ensure it stays on top of sidebar */
-        width: 100%;
-    }
-
-    .sidebar {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        bottom: 0 !important;
-        height: 100% !important;
-        width: 250px !important;
-        z-index: 10000 !important; /* Below top-bar but above content */
-        transform: translateX(0) !important;
-        transition: transform 0.3s ease !important;
-        padding-top: 60px !important; /* Space for top-bar */
-        box-shadow: 2px 0 10px rgba(0,0,0,0.5) !important;
-    }
-
-    .app-container.sidebar-collapsed .sidebar {
-        transform: translateX(-100%) !important; /* Slide completely out */
-        box-shadow: none !important; /* Hide shadow when closed */
-    }
-
-    .sidebar-item {
-        flex: 0 0 auto !important;
-        height: auto !important;
-        width: 100% !important;
-        padding: 12px 16px !important;
-        margin-bottom: 5px !important;
-    }
-
-    .main-content {
-        margin-left: 0 !important;
-        width: 100% !important;
-        padding: 20px !important;
-    }
-
-    /* Overlay backdrop */
-    .app-container:not(.sidebar-collapsed)::after {
-        content: '';
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999; /* Below sidebar, above content */
-        pointer-events: auto;
     }
 }
