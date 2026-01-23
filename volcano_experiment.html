@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Volcano Experiment - CheMuLab</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chemistry_craft.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
@@ -581,6 +582,102 @@
             opacity: 0.5;
             transform: scale(0.9);
         }
+
+        /* Volcano UI Adjustments for Lab Interface */
+        .lab-interface {
+            height: auto;
+            min-height: 600px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 24px;
+            margin-top: 20px;
+        }
+
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            margin-top: 24px;
+        }
+
+        .ingredient-card {
+            aspect-ratio: auto;
+            height: 90px;
+            font-size: 1.8em;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .ingredient-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--primary);
+        }
+
+        .ingredient-card .name {
+            font-size: 0.4em;
+            color: #cbd5e1;
+        }
+
+        /* Scaled Volcano */
+        .volcano-container {
+            margin: 20px auto;
+            position: relative;
+            height: 440px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            padding: 20px;
+            overflow: visible;
+        }
+
+        .volcano {
+            width: 420px;
+            height: 340px;
+            background: linear-gradient(180deg, #4b2c20 0%, #2d1b10 100%);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .lava.erupting {
+            height: 500px;
+            top: -400px;
+            width: 180px;
+        }
+
+        .shared-progress-container {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .ingredient-collected-shared {
+            width: 100%;
+            max-width: 600px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 16px;
+        }
+
+        @media (max-width: 1100px) {
+            .volcano {
+                width: 320px;
+                height: 260px;
+            }
+
+            .volcano-container {
+                height: 380px;
+            }
+        }
     </style>
 </head>
 
@@ -678,33 +775,45 @@
                         </div>
                     </div>
 
-                    <div class="shared-progress-container">
-                        <div id="progressFill" class="progress-fill"></div>
-                        <div id="progressText" class="progress-text">0/16 ingredients collected</div>
-                    </div>
+                    <div class="lab-interface">
+                        <!-- LEFT PANEL: Actions and Controls -->
+                        <div class="elements-panel">
+                            <h3>Ingredients</h3>
+                            <div class="turn-indicator" id="turnIndicator" style="width:100%; box-sizing:border-box;">
+                                Waiting for turn...</div>
+                            <div class="ingredient-grid" id="ingredientGrid">
+                                <!-- Rendered via JS -->
+                            </div>
+                        </div>
 
-                    <div class="ingredient-collected-shared">
-                        <div class="shared-slot">🧂 Soda: <span class="count" id="shared-soda">0</span>/4</div>
-                        <div class="shared-slot">🫗 Vinegar: <span class="count" id="shared-vinegar">0</span>/4</div>
-                        <div class="shared-slot">🧴 Soap: <span class="count" id="shared-soap">0</span>/4</div>
-                        <div class="shared-slot">🔴 Color: <span class="count" id="shared-color">0</span>/4</div>
-                    </div>
+                        <!-- RIGHT PANEL: Result and Visualization -->
+                        <div class="crafting-area"
+                            style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                            <div class="shared-progress-container">
+                                <div id="progressFill" class="progress-fill"></div>
+                                <div id="progressText" class="progress-text">0/16 ingredients collected</div>
+                            </div>
 
-                    <div class="turn-indicator" id="turnIndicator">Waiting for turn...</div>
+                            <div class="volcano-container">
+                                <div class="volcano">
+                                    <div class="lava" id="lava"></div>
+                                    <div class="lava-particles" id="lavaParticles">
+                                        <div class="particle"></div>
+                                        <div class="particle"></div>
+                                        <div class="particle"></div>
+                                        <div class="particle"></div>
+                                        <div class="particle"></div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <div class="ingredient-grid" id="ingredientGrid">
-                        <!-- Rednered via JS -->
-                    </div>
-
-                    <div class="volcano-container">
-                        <div class="volcano">
-                            <div class="lava" id="lava"></div>
-                            <div class="lava-particles" id="lavaParticles">
-                                <div class="particle"></div>
-                                <div class="particle"></div>
-                                <div class="particle"></div>
-                                <div class="particle"></div>
-                                <div class="particle"></div>
+                            <div class="ingredient-collected-shared">
+                                <div class="shared-slot">🧂 Soda: <span class="count" id="shared-soda">0</span>/4</div>
+                                <div class="shared-slot">🫗 Vinegar: <span class="count" id="shared-vinegar">0</span>/4
+                                </div>
+                                <div class="shared-slot">🧴 Soap: <span class="count" id="shared-soap">0</span>/4</div>
+                                <div class="shared-slot">🔴 Color: <span class="count" id="shared-color">0</span>/4
+                                </div>
                             </div>
                         </div>
                     </div>
