@@ -47,9 +47,8 @@
     function createInitialGrid() {
         const allIngredients = [];
         INGREDIENTS.forEach(ing => {
-            for (let i = 0; i < 4; i++) {
-                allIngredients.push({ ...ing, collected: false, collectedBy: null });
-            }
+            // Requirement reduced to 1 of each (4 total)
+            allIngredients.push({ ...ing, collected: false, collectedBy: null });
         });
         return shuffleArray(allIngredients);
     }
@@ -302,9 +301,9 @@
 
         // Update progress bar
         const total = inv.soda + inv.vinegar + inv.soap + inv.color;
-        const percentage = (total / 16) * 100;
+        const percentage = (total / 4) * 100;
         elements.progressFill.style.width = percentage + '%';
-        elements.progressText.textContent = `${total}/16 ingredients collected`;
+        elements.progressText.textContent = `${total}/4 ingredients collected`;
     }
 
     // Toss animation for added life-likeness
@@ -352,7 +351,7 @@
 
         // Check if all ingredients collected
         const total = inventory.soda + inventory.vinegar + inventory.soap + inventory.color;
-        const isComplete = total >= 16;
+        const isComplete = total >= 4;
 
         const nextTurn = currentGame.currentTurn === 1 ? 2 : 1;
 
@@ -371,15 +370,30 @@
 
     // Show victory screen
     function showVictory() {
-        elements.turnIndicator.textContent = '🎉 You both did it! The volcano erupts!';
-        elements.turnIndicator.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        elements.turnIndicator.textContent = '🌋 THE VOLCANO IS ERUPTING! GREAT TEAMWORK!';
+        elements.turnIndicator.style.background = 'linear-gradient(135deg, #ff4500 0%, #ff8c00 100%)';
         elements.turnIndicator.style.color = '#fff';
 
-        // Trigger eruption
+        // Trigger eruption visuals
+        elements.gameArea?.classList.add('shake');
         elements.lava.classList.add('erupting');
         elements.lavaParticles.classList.add('erupting');
 
-        elements.gameOverPanel.style.display = 'block';
+        // Intense particle bursts
+        const burstInterval = setInterval(() => {
+            const p = document.createElement('div');
+            p.className = 'particle erupting';
+            p.style.left = (Math.random() * 80 + 10) + '%';
+            elements.lavaParticles.appendChild(p);
+            setTimeout(() => p.remove(), 1500);
+        }, 100);
+
+        // Show panel after dramatic delay
+        setTimeout(() => {
+            clearInterval(burstInterval);
+            elements.gameOverPanel.style.display = 'block';
+            elements.gameArea?.classList.remove('shake');
+        }, 4000);
     }
 
     // Leave current game
@@ -407,6 +421,7 @@
 
     // Reset game UI
     function resetGameUI() {
+        elements.gameArea?.classList.remove('shake');
         elements.lava.classList.remove('erupting');
         elements.lavaParticles.classList.remove('erupting');
         elements.gameOverPanel.style.display = 'none';
@@ -444,7 +459,8 @@
             volcanoContainer: document.querySelector('.volcano-container'),
             lava: document.getElementById('lava'),
             lavaParticles: document.getElementById('lavaParticles'),
-            gameOverPanel: document.getElementById('gameOverPanel')
+            gameOverPanel: document.getElementById('gameOverPanel'),
+            gameArea: document.querySelector('.game-area')
         };
 
         // Drag and Drop Listeners

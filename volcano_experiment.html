@@ -645,10 +645,71 @@
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
+        /* Eruption Enhancements */
+        .game-area.shake {
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
         .lava.erupting {
-            height: 500px;
-            top: -400px;
-            width: 180px;
+            height: 600px;
+            top: -500px;
+            width: 200px;
+            background: radial-gradient(circle, #ffeb3b, #ff9800, #f44336);
+            filter: blur(5px);
+            box-shadow: 0 0 50px #ff5722;
+        }
+
+        .particle.erupting {
+            width: 15px;
+            height: 15px;
+            background: #ff5722;
+            box-shadow: 0 0 10px #ffeb3b;
         }
 
         .shared-progress-container {
@@ -728,7 +789,7 @@
                 <!-- LOBBY SCREEN -->
                 <div id="lobbyScreen" class="game-screen active">
                     <div class="instructions">
-                        <strong>Collaborative Mode:</strong> Work together with a friend to collect all 16 ingredients.
+                        <strong>Collaborative Mode:</strong> Work together with a friend to collect all 4 ingredients.
                         When both of you contribute your parts, the volcano will erupt!
                     </div>
                     <div class="lobby-options">
@@ -791,7 +852,7 @@
                             style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
                             <div class="shared-progress-container">
                                 <div id="progressFill" class="progress-fill"></div>
-                                <div id="progressText" class="progress-text">0/16 ingredients collected</div>
+                                <div id="progressText" class="progress-text">0/4 ingredients collected</div>
                             </div>
 
                             <div class="volcano-container">
@@ -808,11 +869,11 @@
                             </div>
 
                             <div class="ingredient-collected-shared">
-                                <div class="shared-slot">🧂 Soda: <span class="count" id="shared-soda">0</span>/4</div>
-                                <div class="shared-slot">🫗 Vinegar: <span class="count" id="shared-vinegar">0</span>/4
+                                <div class="shared-slot">🧂 Soda: <span class="count" id="shared-soda">0</span>/1</div>
+                                <div class="shared-slot">🫗 Vinegar: <span class="count" id="shared-vinegar">0</span>/1
                                 </div>
-                                <div class="shared-slot">🧴 Soap: <span class="count" id="shared-soap">0</span>/4</div>
-                                <div class="shared-slot">🔴 Color: <span class="count" id="shared-color">0</span>/4
+                                <div class="shared-slot">🧴 Soap: <span class="count" id="shared-soap">0</span>/1</div>
+                                <div class="shared-slot">🔴 Color: <span class="count" id="shared-color">0</span>/1
                                 </div>
                             </div>
                         </div>
