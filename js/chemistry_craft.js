@@ -7,6 +7,7 @@ const ChemistryCraft = {
     discoveriesList: null,
     pendingDiscoveriesList: null,
     searchInput: null,
+    selectedElement: null, // Track currently selected element for click-to-place fallback
 
     // Initial elements available to the user - Complete periodic table
     initialElements: [
@@ -251,7 +252,33 @@ const ChemistryCraft = {
             div.classList.remove('dragging');
         });
 
+        // Click-to-select fallback for mobile/accessibility
+        div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.handleElementSelect(element, div);
+        });
+
         return div;
+    },
+
+    // Handle element selection for click-to-place
+    handleElementSelect(element, elementDiv) {
+        // Clear previous selection
+        const previousSelected = document.querySelector('.element.selected');
+        if (previousSelected) {
+            previousSelected.classList.remove('selected');
+        }
+
+        // If clicking the same element, deselect it
+        if (this.selectedElement && this.selectedElement.symbol === element.symbol && previousSelected === elementDiv) {
+            this.selectedElement = null;
+            return;
+        }
+
+        // Set new selection
+        this.selectedElement = element;
+        elementDiv.classList.add('selected');
+        console.log('[ChemistryCraft] Element selected:', element.name);
     },
 
     // Setup event listeners
@@ -437,8 +464,63 @@ const ChemistryCraft = {
                 slot.addEventListener('dragover', this.handleDragOver.bind(this));
                 slot.addEventListener('drop', this.handleDrop.bind(this));
                 slot.addEventListener('dragleave', this.handleDragLeave.bind(this));
+
+                // Click-to-place fallback
+                slot.addEventListener('click', () => this.handleSlotClick(slot));
             }
         });
+    },
+
+    // Handle slot click for click-to-place fallback
+    handleSlotClick(slot) {
+        if (!this.selectedElement) {
+            // If slot has an element, maybe clear it on click? 
+            // For now, just show a message if empty
+            if (!slot.dataset.element) {
+                this.showToast('Select an element first, then click a slot');
+            } else {
+                // Clear slot on click if no element is selected
+                this.clearSlot(slot);
+            }
+            return;
+        }
+
+        const element = this.selectedElement;
+        const elementData = JSON.stringify(element);
+
+        // Clear slot and selection
+        slot.innerHTML = '';
+
+        // Create and add the element
+        const elementDiv = this.createElementDiv(element);
+        elementDiv.draggable = false;
+        slot.appendChild(elementDiv);
+
+        // Store element data
+        slot.dataset.element = elementData;
+
+        // Visual feedback
+        slot.classList.add('populated');
+        setTimeout(() => slot.classList.remove('populated'), 300);
+
+        // Clear global selection
+        this.selectedElement = null;
+        const selectedDiv = document.querySelector('.element.selected');
+        if (selectedDiv) selectedDiv.classList.remove('selected');
+
+        // Enable combine button if both slots are filled
+        const slot1 = document.getElementById('slot1');
+        const slot2 = document.getElementById('slot2');
+        this.combineBtn.disabled = !(slot1.dataset.element && slot2.dataset.element);
+
+        console.log('[ChemistryCraft] Placed element via click:', element.name);
+    },
+
+    // Helper to clear a slot
+    clearSlot(slot) {
+        slot.innerHTML = `<div class="slot-label">${slot.id === 'slot1' ? 'Drop First Element' : 'Drop Second Element'}</div>`;
+        delete slot.dataset.element;
+        this.combineBtn.disabled = true;
     },
 
     // Drag and drop handlers
