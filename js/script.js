@@ -214,4 +214,47 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // Theme Toggle Logic
+    const initTheme = () => {
+        const storedTheme = localStorage.getItem('chemulab_theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (storedTheme === 'dark' || (!storedTheme && prefersDark)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    };
+
+    // Inject toggle button if missing (ensure it exists regardless of auth)
+    const topBar = document.querySelector('.top-bar');
+    if (topBar && !document.getElementById('themeToggle')) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'themeToggle';
+        toggleBtn.className = 'theme-toggle';
+        toggleBtn.setAttribute('aria-label', 'Toggle Dark Mode');
+        toggleBtn.innerHTML = '<span class="toggle-icon sun">☀️</span><span class="toggle-icon moon">🌙</span>';
+
+        // Insert before userStatus to keep layout clean
+        if (userStatus) {
+            topBar.insertBefore(toggleBtn, userStatus);
+        } else {
+            topBar.appendChild(toggleBtn);
+        }
+    }
+
+    // Initialize immediately
+    initTheme();
+
+    // Re-attach listener for dynamically added toggle button
+    document.addEventListener('click', function (e) {
+        const toggleBtn = e.target.closest('#themeToggle');
+        if (toggleBtn) {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('chemulab_theme', newTheme);
+        }
+    });
 });

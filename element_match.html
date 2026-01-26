@@ -159,6 +159,15 @@
         </div>
     </div>
     <script src="js/script.js"></script>
+    <script>
+        // Auto-collapse sidebar for game focus
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = document.querySelector('.app-container');
+            if (app && !app.classList.contains('sidebar-collapsed')) {
+                app.classList.add('sidebar-collapsed');
+            }
+        });
+    </script>
     <script src="js/element-match.js"></script>
 </body>
 
