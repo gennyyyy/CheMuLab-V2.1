@@ -780,23 +780,28 @@ body {
 .main-table {
     display: grid;
     grid-template-columns: repeat(18, 1fr);
-    gap: 1px;
+    gap: 4px;
+    /* Increased gap */
     font-size: 12px;
 }
 
 .f-block {
-    margin-top: 5px;
+    margin-top: 15px;
+    /* Added spacing from main table */
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    /* Added gap between rows */
 }
 
 .lanthanides,
 .actinides {
     display: grid;
     grid-template-columns: repeat(14, 1fr);
-    gap: 1px;
-    margin-left: calc(2 * (100%/18) + 1px);
+    gap: 4px;
+    /* Increased gap */
+    margin-left: calc(2 * (100%/18) + 4px);
+    /* Adjust margin for new gap logic */
     /* Align to group 3 */
 }
 
@@ -809,6 +814,8 @@ body {
     box-sizing: border-box;
     cursor: pointer;
     color: #000000;
+    border-radius: 8px;
+    /* Added rounded corners */
     /* Keep element text black for readability with colored backgrounds */
 }
 
