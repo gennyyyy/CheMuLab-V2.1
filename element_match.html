@@ -93,6 +93,39 @@
             cursor: pointer;
             display: none;
         }
+
+        /* Dark Mode Overrides */
+        [data-theme="dark"] .game-area {
+            background: var(--bg-card);
+            color: var(--text-main);
+        }
+
+        [data-theme="dark"] .question-box {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        [data-theme="dark"] .option-btn {
+            background: var(--bg-sidebar);
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .option-btn:hover {
+            background: var(--bg-card-hover);
+        }
+
+        [data-theme="dark"] .option-btn.correct {
+            background: #4CAF50 !important;
+            color: #fff !important;
+            border-color: #4CAF50 !important;
+        }
+
+        [data-theme="dark"] .option-btn.wrong {
+            background: #f44336 !important;
+            color: #fff !important;
+            border-color: #f44336 !important;
+        }
     </style>
 </head>
 
@@ -142,6 +175,7 @@
                 <div class="score-board">
                     <span>Score: <span id="score">0</span></span>
                     <span>Streak: <span id="streak">0</span></span>
+                    <span>Lives: <span id="lives">3</span></span>
                 </div>
 
                 <div class="question-box" id="question">
@@ -155,6 +189,14 @@
                 </div>
 
                 <button class="next-btn" id="nextBtn">Next Question</button>
+
+                <!-- Game Over Screen -->
+                <div class="game-area" id="gameOverScreen" style="display: none;">
+                    <h2>Game Over!</h2>
+                    <p>Final Score: <span id="finalScore">0</span></p>
+                    <button class="next-btn" id="restartBtn" style="display: inline-block; background: #4CAF50;">Play
+                        Again</button>
+                </div>
             </div>
         </div>
     </div>

@@ -142,6 +142,33 @@
             font-size: 1.2em;
             font-weight: bold;
         }
+
+        /* Dark Mode Overrides */
+        [data-theme="dark"] .game-area {
+            background: var(--bg-card);
+            color: var(--text-main);
+        }
+
+        [data-theme="dark"] .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        [data-theme="dark"] .puzzle-grid {
+            background: var(--bg-sidebar);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .puzzle-slot {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        [data-theme="dark"] .pieces-tray {
+            background: var(--bg-sidebar);
+            border-color: var(--border-color);
+        }
     </style>
 </head>
 

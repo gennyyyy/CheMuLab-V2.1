@@ -4,18 +4,48 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentStreak = 0;
     let currentCorrectAnswer = null;
     let isGameActive = true;
+    let lives = 3;
 
     // DOM Elements
     const questionEl = document.getElementById('question');
     const optionsEl = document.getElementById('options');
     const scoreEl = document.getElementById('score');
     const streakEl = document.getElementById('streak');
+    const livesEl = document.getElementById('lives');
     const feedbackEl = document.getElementById('feedback');
     const nextBtn = document.getElementById('nextBtn');
+    
+    // Game Over Elements
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreEl = document.getElementById('finalScore');
+    const restartBtn = document.getElementById('restartBtn');
+    
+    // Main Game Elements Container (to hide when game over)
+    // In this structure, we might just hide the question/options/feedback
+    // But let's verify if we need a container. For now, we'll toggle visibility of specific elements.
 
     // Init Game
     function initGame() {
         nextBtn.addEventListener('click', generateQuestion);
+        restartBtn.addEventListener('click', restartGame);
+        restartGame();
+    }
+    
+    function restartGame() {
+        currentScore = 0;
+        currentStreak = 0;
+        lives = 3;
+        scoreEl.textContent = currentScore;
+        streakEl.textContent = currentStreak;
+        livesEl.textContent = lives;
+        
+        // Hide Game Over, Show Game
+        gameOverScreen.style.display = 'none';
+        questionEl.style.display = 'block';
+        optionsEl.style.display = 'grid';
+        feedbackEl.style.display = 'block';
+        document.querySelector('.score-board').style.display = 'flex'; // Ensure scoreboard is visible
+        
         generateQuestion();
     }
 
@@ -125,17 +155,41 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStreak++;
             feedbackEl.textContent = 'Correct! Great Job!';
             feedbackEl.style.color = 'green';
+            scoreEl.textContent = currentScore;
+            streakEl.textContent = currentStreak;
+            
+            // Show Next Button
+            nextBtn.style.display = 'inline-block';
         } else {
             currentStreak = 0;
+            lives--;
+            livesEl.textContent = lives;
+            streakEl.textContent = currentStreak;
+            
             feedbackEl.textContent = `Wrong! The answer was ${currentCorrectAnswer.name} (${currentCorrectAnswer.symbol})`;
             feedbackEl.style.color = 'red';
+
+            if (lives <= 0) {
+                endGame();
+            } else {
+                nextBtn.style.display = 'inline-block';
+            }
         }
+    }
+    
+    function endGame() {
+        finalScoreEl.textContent = currentScore;
+        
+        // Hide Game Elements
+        questionEl.style.display = 'none';
+        optionsEl.style.display = 'none';
+        feedbackEl.style.display = 'none';
+        nextBtn.style.display = 'none';
+        // score-board stays visible or hidden? Let's hide it to clean up view
+        document.querySelector('.score-board').style.display = 'none';
 
-        scoreEl.textContent = currentScore;
-        streakEl.textContent = currentStreak;
-
-        // Show Next Button
-        nextBtn.style.display = 'inline-block';
+        // Show Game Over
+        gameOverScreen.style.display = 'block';
     }
 
     // Start

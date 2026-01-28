@@ -4,18 +4,45 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentStreak = 0;
     let currentCorrectAnswer = null;
     let isGameActive = true;
+    let lives = 3;
 
     // DOM Elements
     const questionEl = document.getElementById('question');
+    const questionBox = document.getElementById('questionBox');
     const optionsEl = document.getElementById('options');
     const scoreEl = document.getElementById('score');
     const streakEl = document.getElementById('streak');
+    const livesEl = document.getElementById('lives');
     const feedbackEl = document.getElementById('feedback');
     const nextBtn = document.getElementById('nextBtn');
+
+    // Game Over Elements
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreEl = document.getElementById('finalScore');
+    const restartBtn = document.getElementById('restartBtn');
 
     // Init Game
     function initGame() {
         nextBtn.addEventListener('click', generateQuestion);
+        restartBtn.addEventListener('click', restartGame);
+        restartGame();
+    }
+
+    function restartGame() {
+        currentScore = 0;
+        currentStreak = 0;
+        lives = 3;
+        scoreEl.textContent = currentScore;
+        streakEl.textContent = currentStreak;
+        livesEl.textContent = lives;
+
+        // Hide Game Over, Show Game
+        gameOverScreen.style.display = 'none';
+        questionBox.style.display = 'block';
+        optionsEl.style.display = 'grid';
+        feedbackEl.style.display = 'block';
+        document.querySelector('.score-board').style.display = 'flex';
+
         generateQuestion();
     }
 
@@ -87,17 +114,40 @@ document.addEventListener('DOMContentLoaded', () => {
             currentStreak++;
             feedbackEl.textContent = 'Correct! Great Job!';
             feedbackEl.style.color = 'green';
+            scoreEl.textContent = currentScore;
+            streakEl.textContent = currentStreak;
+
+            // Show Next Button
+            nextBtn.style.display = 'inline-block';
         } else {
             currentStreak = 0;
+            lives--;
+            livesEl.textContent = lives;
+            streakEl.textContent = currentStreak;
+
             feedbackEl.textContent = `Wrong! The answer was ${currentCorrectAnswer.products}`;
             feedbackEl.style.color = 'red';
+
+            if (lives <= 0) {
+                endGame();
+            } else {
+                nextBtn.style.display = 'inline-block';
+            }
         }
+    }
 
-        scoreEl.textContent = currentScore;
-        streakEl.textContent = currentStreak;
+    function endGame() {
+        finalScoreEl.textContent = currentScore;
 
-        // Show Next Button
-        nextBtn.style.display = 'inline-block';
+        // Hide Game Elements
+        questionBox.style.display = 'none';
+        optionsEl.style.display = 'none';
+        feedbackEl.style.display = 'none';
+        nextBtn.style.display = 'none';
+        document.querySelector('.score-board').style.display = 'none';
+
+        // Show Game Over
+        gameOverScreen.style.display = 'block';
     }
 
     // Start

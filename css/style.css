@@ -808,7 +808,7 @@ body {
     padding: 5px;
     box-sizing: border-box;
     cursor: pointer;
-    color: var(--text-main);
+    color: #000000;
     /* Keep element text black for readability with colored backgrounds */
 }
 
@@ -978,7 +978,7 @@ body {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: var(--bg-card);
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
