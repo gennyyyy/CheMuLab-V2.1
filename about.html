@@ -19,8 +19,10 @@
 <body>
     <div class="app-container">
         <div class="top-bar">
-            <span class="logo">CheMuLab</span>
-            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="header-left">
+                <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+                <span class="logo">CheMuLab</span>
+            </div>
             <div class="nav-links">
             </div>
             <div id="userStatus" class="sign-in">
@@ -29,52 +31,73 @@
         </div>
 
         <div class="sidebar">
-            <a href="index.html" class="sidebar-item active">
-                <div class="sidebar-icon">&#127968;</div> Home
-            </a>
-            <a href="your_lab.html" class="sidebar-item">
-                <div class="sidebar-icon">&#129514;</div> Your Lab
-            </a>
-            <a href="friends.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128101;</div> Friends
-            </a>
-            <a href="elements.html" class="sidebar-item">
-                <div class="sidebar-icon">&#9883;</div> Elements
-            </a>
-            <a href="games.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127918;</div> Games
-            </a>
-            <a href="profile.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128100;</div> Profile
-            </a>
-            <!--<a href="leaderboard.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127942;</div> Leaderboard
-            </a> -->
-            <a href="about.html" class="sidebar-item">
-                <div class="sidebar-icon">&#8505;</div> About
-            </a>
+            <div class="sidebar-nav">
+                <a href="index.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127968;</div> Home
+                </a>
+                <a href="your_lab.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#129514;</div> Your Lab
+                </a>
+                <a href="friends.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#128101;</div> Friends
+                </a>
+                <a href="elements.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#9883;</div> Elements
+                </a>
+                <a href="games.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127918;</div> Games
+                </a>
+                <a href="about.html" class="sidebar-item active">
+                    <div class="sidebar-icon">&#8505;</div> About
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div id="sidebarLogoutContainer"></div>
+            </div>
         </div>
 
         <div class="main-content">
             <div class="welcome">About CheMuLab</div>
             <div class="about-section">
+                <!-- Background Decorations -->
+                <div class="about-decoration flask">🧪</div>
+                <div class="about-decoration atom">⚛️</div>
+
                 <h2>Welcome to CheMuLab!</h2>
-                <p>CheMuLab is your interactive chemistry learning platform that makes studying chemistry fun and
-                    engaging. Practice chemical reactions, learn about elements, and compete with friends in a gamified
-                    learning environment.</p>
+                <p>CheMuLab remains the ultimate interactive chemistry learning platform that bridges the gap between
+                    complex science and engaging education. Whether you're a student, a teacher, or a lifelong learner,
+                    this is your reactive playground.</p>
 
-                <h3>Features:</h3>
-                <ul>
-                    <li>Interactive chemistry experiments</li>
-                    <li>Comprehensive element database</li>
-                    <li>Progress tracking</li>
-                    <li>Friend interactions</li>
-                    <li>Competitive leaderboard</li>
-                </ul>
+                <div class="about-grid">
+                    <div class="about-feature-card">
+                        <div class="feature-icon">⚗️</div>
+                        <h4>Interactive Lab</h4>
+                        <p>Begin experimenting with high-fidelity chemical reactions in your personal workspace.
+                            Discover hundreds of unique combinations.</p>
+                    </div>
+                    <div class="about-feature-card">
+                        <div class="feature-icon">📖</div>
+                        <h4>Element Database</h4>
+                        <p>Explore a comprehensive, high-detail periodic table. Learn about atomic properties, history,
+                            and usage of every element.</p>
+                    </div>
+                    <div class="about-feature-card">
+                        <div class="feature-icon">🎮</div>
+                        <h4>Gamified Learning</h4>
+                        <p>Master your chemistry knowledge through addictive mini-games. Compete for the highest scores
+                            on global leaderboards.</p>
+                    </div>
+                    <div class="about-feature-card">
+                        <div class="feature-icon">🤝</div>
+                        <h4>Social Science</h4>
+                        <p>Team up with friends, compare chemical discoveries, and enjoy a shared learning journey in
+                            our growing community.</p>
+                    </div>
+                </div>
 
-                <h3>How to Use:</h3>
-                <p>Start by visiting Your Lab to begin experimenting with different chemical reactions. Track your
-                    progress, challenge your friends, and climb the leaderboard as you learn!</p>
+                <h3 style="margin-top: 3rem;">Our Mission</h3>
+                <p>To provide a state-of-the-art educational environment that transforms the way people perceive through
+                    a fusion of premium design, agentic technology, and scientific rigor.</p>
             </div>
         </div>
     </div>

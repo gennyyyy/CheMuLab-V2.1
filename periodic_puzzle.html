@@ -175,8 +175,10 @@
 <body>
     <div class="app-container">
         <div class="top-bar">
-            <span class="logo">CheMuLab</span>
-            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="header-left">
+                <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+                <span class="logo">CheMuLab</span>
+            </div>
             <div class="nav-links"></div>
             <div id="userStatus" class="sign-in">
                 <span id="userStatusText"></span>
@@ -184,27 +186,29 @@
         </div>
 
         <div class="sidebar">
-            <a href="index.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127968;</div> Home
-            </a>
-            <a href="your_lab.html" class="sidebar-item">
-                <div class="sidebar-icon">&#129514;</div> Your Lab
-            </a>
-            <a href="friends.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128101;</div> Friends
-            </a>
-            <a href="elements.html" class="sidebar-item">
-                <div class="sidebar-icon">&#9883;</div> Elements
-            </a>
-            <a href="games.html" class="sidebar-item active">
-                <div class="sidebar-icon">&#127918;</div> Games
-            </a>
-            <a href="profile.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128100;</div> Profile
-            </a>
-            <a href="about.html" class="sidebar-item">
-                <div class="sidebar-icon">&#8505;</div> About
-            </a>
+            <div class="sidebar-nav">
+                <a href="index.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127968;</div> Home
+                </a>
+                <a href="your_lab.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#129514;</div> Your Lab
+                </a>
+                <a href="friends.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#128101;</div> Friends
+                </a>
+                <a href="elements.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#9883;</div> Elements
+                </a>
+                <a href="games.html" class="sidebar-item active">
+                    <div class="sidebar-icon">&#127918;</div> Games
+                </a>
+                <a href="about.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#8505;</div> About
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div id="sidebarLogoutContainer"></div>
+            </div>
         </div>
 
         <div class="main-content">

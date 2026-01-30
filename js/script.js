@@ -6,10 +6,11 @@ async function updateUserStatus() {
     const userStatusText = document.getElementById('userStatusText');
     if (!userStatusText) return;
 
-    // Check for cached username to show immediately
+    // Check for cached username and update sidebar
     const cachedUsername = localStorage.getItem('cachedUsername');
     if (cachedUsername && !userStatusText.dataset.updated) {
-        userStatusText.innerHTML = `${cachedUsername} <span class="logout-btn"><span class="logout-icon"><img src="img/logout-icon.png" alt="Logout"></span><span class="logout-text">Logout</span></span>`;
+        userStatusText.innerHTML = ''; // Clear header profile display
+        updateSidebarLogout(true, cachedUsername);
     }
 
     // Get current Firebase user
@@ -38,19 +39,10 @@ async function updateUserStatus() {
             if (profile.username) {
                 console.log('[updateUserStatus] Found username in profile:', profile.username);
                 const avatarUrl = profile.photoURL || 'img/default-avatar.png';
-                const html = `
-                    <div class="header-user">
-                        <img src="${avatarUrl}" class="header-avatar" alt="Profile">
-                        <span class="header-username">${profile.username}</span>
-                        <span class="logout-btn">
-                            <span class="logout-icon"><img src="img/logout-icon.png" alt="Logout"></span>
-                            <span class="logout-text">Logout</span>
-                        </span>
-                    </div>
-                `;
-                userStatusText.innerHTML = html;
+                userStatusText.innerHTML = ''; // Clear header profile display
                 userStatusText.dataset.updated = "true";
                 localStorage.setItem('cachedUsername', profile.username);
+                updateSidebarLogout(true, profile.username, avatarUrl, user.emailVerified);
                 return;
             }
 
@@ -74,19 +66,10 @@ async function updateUserStatus() {
                 avatarUrl = profileDoc.data().photoURL || avatarUrl;
             }
 
-            const html = `
-                <div class="header-user">
-                    <img src="${avatarUrl}" class="header-avatar" alt="Profile">
-                    <span class="header-username">${username}</span>
-                    <span class="logout-btn">
-                        <span class="logout-icon"><img src="img/logout-icon.png" alt="Logout"></span>
-                        <span class="logout-text">Logout</span>
-                    </span>
-                </div>
-            `;
-            userStatusText.innerHTML = html;
+            userStatusText.innerHTML = ''; // Clear header profile display
             userStatusText.dataset.updated = "true";
             localStorage.setItem('cachedUsername', username);
+            updateSidebarLogout(true, username, avatarUrl, user.emailVerified);
             return;
         }
 
@@ -96,19 +79,10 @@ async function updateUserStatus() {
         const username = profile && profile.username ? profile.username : (localStorage.getItem('cachedUsername') || user.email || 'User');
         const avatarUrl = (profile && profile.photoURL) || 'img/default-avatar.png';
 
-        const html = `
-            <div class="header-user">
-                <img src="${avatarUrl}" class="header-avatar" alt="Profile">
-                <span class="header-username">${username}</span>
-                <span class="logout-btn">
-                    <span class="logout-icon"><img src="img/logout-icon.png" alt="Logout"></span>
-                    <span class="logout-text">Logout</span>
-                </span>
-            </div>
-        `;
-        userStatusText.innerHTML = html;
+        userStatusText.innerHTML = ''; // Clear header profile display
         userStatusText.dataset.updated = "true";
         if (username !== user.email) localStorage.setItem('cachedUsername', username);
+        updateSidebarLogout(true, username, avatarUrl, user.emailVerified);
 
     } catch (e) {
         console.warn('[updateUserStatus] Error loading username:', e);
@@ -116,6 +90,44 @@ async function updateUserStatus() {
         if (!userStatusText.innerHTML && user) {
             userStatusText.textContent = user.email;
         }
+    }
+}
+
+// Function to update the sidebar logout button visibility
+function updateSidebarLogout(isLoggedIn, username = 'Explorer', avatarUrl = 'img/default-avatar.png', isVerified = false) {
+    const logoutContainer = document.getElementById('sidebarLogoutContainer');
+    if (!logoutContainer) return;
+
+    if (isLoggedIn) {
+        logoutContainer.innerHTML = `
+            <div class="user-profile-card">
+                <a href="profile.html" class="user-profile-info" style="text-decoration: none;">
+                    <div class="user-profile-avatar">
+                        <img src="${avatarUrl}" alt="Profile">
+                    </div>
+                    <div class="user-profile-details">
+                        <span class="user-profile-name">${username}</span>
+                        <span class="user-profile-status">${isVerified ? 'Verified' : 'Explorer'}</span>
+                    </div>
+                </a>
+                <button id="sidebarLogoutBtn" class="user-profile-logout" title="Logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+        `;
+        const btn = document.getElementById('sidebarLogoutBtn');
+        if (btn) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                AuthService.logout();
+            };
+        }
+    } else {
+        logoutContainer.innerHTML = '';
     }
 }
 
@@ -228,20 +240,16 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Inject toggle button if missing (ensure it exists regardless of auth)
-    const topBar = document.querySelector('.top-bar');
-    if (topBar && !document.getElementById('themeToggle')) {
+    const headerLeft = document.querySelector('.header-left');
+    if (headerLeft && !document.getElementById('themeToggle')) {
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'themeToggle';
         toggleBtn.className = 'theme-toggle';
         toggleBtn.setAttribute('aria-label', 'Toggle Dark Mode');
         toggleBtn.innerHTML = '<span class="toggle-icon sun">☀️</span><span class="toggle-icon moon">🌙</span>';
 
-        // Insert before userStatus to keep layout clean
-        if (userStatus) {
-            topBar.insertBefore(toggleBtn, userStatus);
-        } else {
-            topBar.appendChild(toggleBtn);
-        }
+        // Append to header-left so it stays grouped with logo and toggle
+        headerLeft.appendChild(toggleBtn);
     }
 
     // Initialize immediately

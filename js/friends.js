@@ -120,11 +120,10 @@
         try {
             // Avoid server-side composite index requirement by filtering by toUid
             // and sorting client-side.
-            const q = firebase.firestore().collection('friendRequests').where('toUid', '==', currentUser.uid);
-            q.onSnapshot(snap => {
+            const query = firebase.firestore().collection('friendRequests').where('toUid', '==', currentUser.uid);
+            query.onSnapshot(snap => {
                 reqList.innerHTML = '';
                 if (snap.empty) { reqList.innerHTML = '<div class="muted">No pending requests.</div>'; return; }
-                // Sort docs by createdAt desc on the client to avoid composite index requirement
                 const docs = snap.docs.slice().sort((a, b) => {
                     const aTs = a.data().createdAt && a.data().createdAt.toMillis ? a.data().createdAt.toMillis() : (a.data().createdAt || 0);
                     const bTs = b.data().createdAt && b.data().createdAt.toMillis ? b.data().createdAt.toMillis() : (b.data().createdAt || 0);
@@ -138,10 +137,13 @@
                     reqList.appendChild(div);
                 });
             }, err => {
-                console.error('Failed to listen for friendRequests', err);
+                console.error('[friends] Failed to listen for friendRequests:', err.code, err.message);
                 reqList.innerHTML = '<div class="muted">Unable to load requests (check permissions).</div>';
             });
-        } catch (e) { console.error('listenForFriendRequests error', e); reqList.innerHTML = '<div class="muted">Unable to load requests.</div>'; }
+        } catch (e) {
+            console.error('[friends] listenForFriendRequests setup error:', e);
+            reqList.innerHTML = '<div class="muted">Unable to load requests.</div>';
+        }
     }
 
     // Listen for outgoing friend requests (fromUid == currentUser.uid)
@@ -161,8 +163,8 @@
         });
 
         try {
-            const q = firebase.firestore().collection('friendRequests').where('fromUid', '==', currentUser.uid);
-            q.onSnapshot(async snap => {
+            const query = firebase.firestore().collection('friendRequests').where('fromUid', '==', currentUser.uid);
+            query.onSnapshot(async snap => {
                 outList.innerHTML = '';
                 if (snap.empty) { outList.innerHTML = '<div class="muted">No outgoing requests.</div>'; return; }
                 const docs = snap.docs.slice().sort((a, b) => {
@@ -241,10 +243,13 @@
                     await loadFriends();
                 }
             }, err => {
-                console.error('Failed to listen for outgoing friendRequests', err);
+                console.error('[friends] Failed to listen for outgoing requests:', err.code, err.message);
                 outList.innerHTML = '<div class="muted">Unable to load outgoing requests (check permissions).</div>';
             });
-        } catch (e) { console.error('listenForOutgoingRequests error', e); outList.innerHTML = '<div class="muted">Unable to load outgoing requests.</div>'; }
+        } catch (e) {
+            console.error('[friends] listenForOutgoingRequests setup error:', e);
+            outList.innerHTML = '<div class="muted">Unable to load outgoing requests.</div>';
+        }
     }
 
     async function cancelFriendRequest(requestId) {
@@ -275,10 +280,13 @@
         if (!currentUser || !window.firebase) return;
         const uid = currentUser.uid;
         const friendsList = $('#friendsList');
-        friendsList.innerHTML = 'Loading...';
+
+        // Show loading state immediately
+        friendsList.innerHTML = '<div class="muted">Loading friends...</div>';
 
         try {
-            const snap = await firebase.firestore().collection('users').doc(uid).collection('friends').orderBy('username', 'asc').get();
+            // Fetch friends without orderBy for initial load to avoid index errors
+            const snap = await firebase.firestore().collection('users').doc(uid).collection('friends').get();
             friendsList.innerHTML = '';
             if (snap.empty) {
                 friendsList.innerHTML = '<div class="muted">No friends yet. Add one by email.</div>';

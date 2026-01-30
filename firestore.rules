@@ -60,8 +60,8 @@ service cloud.firestore {
                     && request.resource.data.toUid != ''
                     && request.resource.data.fromUid != request.resource.data.toUid;
 
-      allow read, delete: if request.auth != null
-                           && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow read, delete: if request.auth != null && resource.data.fromUid == request.auth.uid;
+      allow read, delete: if request.auth != null && resource.data.toUid == request.auth.uid;
 
       // Allow recipient to update the request to add acceptedAt timestamp
       allow update: if request.auth != null

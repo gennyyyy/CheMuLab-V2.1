@@ -25,8 +25,10 @@
 <body>
     <div class="app-container">
         <div class="top-bar">
-            <span class="logo">CheMuLab</span>
-            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="header-left">
+                <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+                <span class="logo">CheMuLab</span>
+            </div>
             <div class="nav-links">
             </div>
             <div id="userStatus" class="sign-in">
@@ -35,60 +37,153 @@
         </div>
 
         <div class="sidebar">
-            <a href="index.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127968;</div> Home
-            </a>
-            <a href="your_lab.html" class="sidebar-item">
-                <div class="sidebar-icon">&#129514;</div> Your Lab
-            </a>
-            <a href="friends.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128101;</div> Friends
-            </a>
-            <a href="elements.html" class="sidebar-item">
-                <div class="sidebar-icon">&#9883;</div> Elements
-            </a>
-            <a href="games.html" class="sidebar-item active">
-                <div class="sidebar-icon">&#127918;</div> Games
-            </a>
-            <a href="profile.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128100;</div> Profile
-            </a>
-            <a href="about.html" class="sidebar-item">
-                <div class="sidebar-icon">&#8505;</div> About
-            </a>
+            <div class="sidebar-nav">
+                <a href="index.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127968;</div> Home
+                </a>
+                <a href="your_lab.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#129514;</div> Your Lab
+                </a>
+                <a href="friends.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#128101;</div> Friends
+                </a>
+                <a href="elements.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#9883;</div> Elements
+                </a>
+                <a href="games.html" class="sidebar-item active">
+                    <div class="sidebar-icon">&#127918;</div> Games
+                </a>
+                <a href="about.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#8505;</div> About
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div id="sidebarLogoutContainer"></div>
+            </div>
         </div>
 
-        <div class="main-content">
-            <!-- Hero Banner -->
-            <section class="hero">
-                <div style="flex:1;min-width:220px;">
-                    <h1>Games Arena</h1>
-                    <p>Challenge yourself with chemistry puzzles and quizzes!</p>
+        <div class="main-content" style="position: relative;">
+            <!-- Background Shapes for Arena Depth -->
+            <div
+                style="position: absolute; top: 15%; right: 5%; width: 400px; height: 400px; background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%); opacity: 0.03; pointer-events: none; z-index: 0;">
+            </div>
+            <div
+                style="position: absolute; bottom: 10%; left: 0; width: 300px; height: 300px; background: radial-gradient(circle, #8b5cf6 0%, transparent 70%); opacity: 0.05; pointer-events: none; z-index: 0;">
+            </div>
+            <!-- Hero Banner (Vibrant Redesign) -->
+            <section class="hero"
+                style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); position: relative; overflow: hidden; border: none; box-shadow: var(--shadow-xl), 0 0 30px rgba(99, 102, 241, 0.2);">
+                <!-- Decorative Shapes -->
+                <div
+                    style="position: absolute; top: -50px; left: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%); border-radius: 50%; pointer-events: none;">
+                </div>
+                <div
+                    style="position: absolute; bottom: -80px; right: -20px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%); border-radius: 50%; pointer-events: none;">
+                </div>
+
+                <div style="flex: 1; min-width: 250px; position: relative; z-index: 2;">
+                    <div
+                        style="display: inline-block; padding: 10px 20px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: var(--radius-md); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1rem;">
+                        <span
+                            style="color: #818cf8; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">🎮
+                            Interactive Learning</span>
+                    </div>
+                    <h1 style="color: #fff; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">Games Arena
+                    </h1>
+                    <p style="color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; max-width: 450px;">Challenge yourself
+                        with chemistry puzzles and quizzes to sharpen your skills and unlock new achievements!</p>
+                </div>
+
+                <div class="hero-image" id="heroEmojiArea"
+                    style="position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none;">
+                    <!-- Draggable Emojis -->
+                    <div class="draggable-emoji"
+                        style="position: absolute; top: 15%; left: 75%; font-size: 3rem; animation: float 3s ease-in-out infinite; cursor: grab; pointer-events: auto; user-select: none; z-index: 10;">
+                        🧪</div>
+                    <div class="draggable-emoji"
+                        style="position: absolute; top: 50%; left: 85%; font-size: 3rem; animation: float 4s ease-in-out infinite reverse; animation-delay: 1s; cursor: grab; pointer-events: auto; user-select: none; z-index: 10;">
+                        🧩</div>
+                    <div class="draggable-emoji"
+                        style="position: absolute; top: 30%; left: 65%; font-size: 3rem; animation: float 5s ease-in-out infinite; animation-delay: 0.5s; cursor: grab; pointer-events: auto; user-select: none; z-index: 10;">
+                        ⚗️</div>
+                    <div class="draggable-emoji"
+                        style="position: absolute; top: 65%; left: 72%; font-size: 3rem; animation: float 6s ease-in-out infinite reverse; animation-delay: 1.5s; cursor: grab; pointer-events: auto; user-select: none; z-index: 10;">
+                        ⚛️</div>
                 </div>
             </section>
 
-            <!-- Games Grid -->
-            <h2>Available Games</h2>
+            <style>
+                @keyframes float {
+
+                    0%,
+                    100% {
+                        transform: translateY(0) rotate(0);
+                    }
+
+                    50% {
+                        transform: translateY(-10px) rotate(5deg);
+                    }
+                }
+            </style>
+
+            <!-- Games Grid (Gamified Cards) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">Available Games</h2>
+                <div
+                    style="background: var(--bg-item-active); padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; color: var(--accent-color);">
+                    5 Modules Active
+                </div>
+            </div>
+
             <div class="quick-actions">
-                <a href="element_match.html" class="quick-action-card">
-                    <strong>🧪 Element Match</strong>
-                    <div class="muted">Match symbols to element names</div>
+                <a href="element_match.html" class="quick-action-card"
+                    style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, var(--bg-card) 100%); border-left: 4px solid #0ea5e9;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">🧪</div>
+                    <strong>Element Match</strong>
+                    <div class="muted" style="margin-bottom: 15px;">Match symbols to element names</div>
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 5px; color: #0ea5e9; font-weight: 700; font-size: 0.85rem;">Play
+                        Now →</span>
                 </a>
-                <a href="reaction_quiz.html" class="quick-action-card">
-                    <strong>⚗️ Reaction Quiz</strong>
-                    <div class="muted">Predict the products of reactions</div>
+
+                <a href="reaction_quiz.html" class="quick-action-card"
+                    style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, var(--bg-card) 100%); border-left: 4px solid #8b5cf6;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⚗️</div>
+                    <strong>Reaction Quiz</strong>
+                    <div class="muted" style="margin-bottom: 15px;">Predict the products of reactions</div>
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 5px; color: #8b5cf6; font-weight: 700; font-size: 0.85rem;">Start
+                        Quiz →</span>
                 </a>
-                <a href="whack_a_mole.html" class="quick-action-card">
-                    <strong>⚖️ Whack-a-Mole</strong>
-                    <div class="muted">Catch the heavy metals!</div>
+
+                <a href="whack_a_mole.html" class="quick-action-card"
+                    style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, var(--bg-card) 100%); border-left: 4px solid #22c55e;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">⚖️</div>
+                    <strong>Whack-a-Mole</strong>
+                    <div class="muted" style="margin-bottom: 15px;">Catch the heavy metals!</div>
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 5px; color: #22c55e; font-weight: 700; font-size: 0.85rem;">Enter
+                        Arena →</span>
                 </a>
-                <a href="periodic_puzzle.html" class="quick-action-card">
-                    <strong>🧩 Periodic Puzzle</strong>
-                    <div class="muted">Assemble the table</div>
+
+                <a href="periodic_puzzle.html" class="quick-action-card"
+                    style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, var(--bg-card) 100%); border-left: 4px solid #f59e0b;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">🧩</div>
+                    <strong>Periodic Puzzle</strong>
+                    <div class="muted" style="margin-bottom: 15px;">Assemble the table</div>
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 5px; color: #f59e0b; font-weight: 700; font-size: 0.85rem;">Solve
+                        Puzzle →</span>
                 </a>
-                <a href="volcano_experiment.html" class="quick-action-card">
-                    <strong>🌋 Volcano Experiment</strong>
-                    <div class="muted">2-player ingredient race!</div>
+
+                <a href="volcano_experiment.html" class="quick-action-card"
+                    style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, var(--bg-card) 100%); border-left: 4px solid #ef4444;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">🌋</div>
+                    <strong>Volcano Race</strong>
+                    <div class="muted" style="margin-bottom: 15px;">2-player ingredient race!</div>
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 5px; color: #ef4444; font-weight: 700; font-size: 0.85rem;">Duel
+                        Start →</span>
                 </a>
             </div>
         </div>
@@ -96,6 +191,76 @@
     <script src="js/script.js"></script>
     <script src="js/gemini-config.js"></script>
     <script src="js/chatbot.js"></script>
+    <script>
+        // Draggable Emoji Logic
+        window.addEventListener('load', () => {
+            const emojis = document.querySelectorAll('.draggable-emoji');
+
+            emojis.forEach(emoji => {
+                let isDragging = false;
+                let currentX = 0;
+                let currentY = 0;
+                let initialX;
+                let initialY;
+                let xOffset = 0;
+                let yOffset = 0;
+
+                const hero = document.querySelector('.hero');
+
+                // Initialize relative position
+                const rect = emoji.getBoundingClientRect();
+                const heroRect = hero.getBoundingClientRect();
+                xOffset = rect.left - heroRect.left;
+                yOffset = rect.top - heroRect.top;
+
+                emoji.style.left = xOffset + 'px';
+                emoji.style.top = yOffset + 'px';
+                emoji.style.margin = '0';
+
+                emoji.addEventListener('mousedown', (e) => {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                    if (e.target === emoji) {
+                        isDragging = true;
+                        emoji.style.animation = 'none';
+                        emoji.style.cursor = 'grabbing';
+                        emoji.style.zIndex = '100';
+                    }
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        e.preventDefault();
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+
+                        const heroRect = hero.getBoundingClientRect();
+                        const emojiRect = emoji.getBoundingClientRect();
+
+                        // Bounds
+                        if (currentX < 0) currentX = 0;
+                        if (currentY < 0) currentY = 0;
+                        if (currentX + emojiRect.width > heroRect.width) currentX = heroRect.width - emojiRect.width;
+                        if (currentY + emojiRect.height > heroRect.height) currentY = heroRect.height - emojiRect.height;
+
+                        xOffset = currentX;
+                        yOffset = currentY;
+
+                        emoji.style.left = xOffset + 'px';
+                        emoji.style.top = yOffset + 'px';
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        emoji.style.cursor = 'grab';
+                        emoji.style.zIndex = '10';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

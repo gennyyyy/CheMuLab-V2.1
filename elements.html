@@ -20,16 +20,19 @@
     <style>
         .element {
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
 
         .element.discovered {
-            box-shadow: 0 0 10px rgba(135, 206, 235, 0.5);
+            box-shadow: 0 0 10px rgba(135, 206, 235, 0.3);
         }
 
         .element:hover {
-            transform: scale(1.1);
-            z-index: 1;
+            transform: translateY(-2px) scale(1.08);
+            z-index: 10;
+            box-shadow: var(--shadow-lg), var(--glow-accent-strong);
+            filter: brightness(1.1);
         }
     </style>
 
@@ -62,8 +65,10 @@
 <body>
     <div class="app-container">
         <div class="top-bar">
-            <span class="logo">CheMuLab</span>
-            <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+            <div class="header-left">
+                <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+                <span class="logo">CheMuLab</span>
+            </div>
             <div class="nav-links">
             </div>
             <div id="userStatus" class="sign-in">
@@ -72,27 +77,29 @@
         </div>
 
         <div class="sidebar">
-            <a href="index.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127968;</div> Home
-            </a>
-            <a href="your_lab.html" class="sidebar-item">
-                <div class="sidebar-icon">&#129514;</div> Your Lab
-            </a>
-            <a href="friends.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128101;</div> Friends
-            </a>
-            <a href="elements.html" class="sidebar-item active">
-                <div class="sidebar-icon">&#9883;</div> Elements
-            </a>
-            <a href="games.html" class="sidebar-item">
-                <div class="sidebar-icon">&#127918;</div> Games
-            </a>
-            <a href="profile.html" class="sidebar-item">
-                <div class="sidebar-icon">&#128100;</div> Profile
-            </a>
-            <a href="about.html" class="sidebar-item">
-                <div class="sidebar-icon">&#8505;</div> About
-            </a>
+            <div class="sidebar-nav">
+                <a href="index.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127968;</div> Home
+                </a>
+                <a href="your_lab.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#129514;</div> Your Lab
+                </a>
+                <a href="friends.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#128101;</div> Friends
+                </a>
+                <a href="elements.html" class="sidebar-item active">
+                    <div class="sidebar-icon">&#9883;</div> Elements
+                </a>
+                <a href="games.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#127918;</div> Games
+                </a>
+                <a href="about.html" class="sidebar-item">
+                    <div class="sidebar-icon">&#8505;</div> About
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div id="sidebarLogoutContainer"></div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -585,11 +592,28 @@
     <!-- Modal Structure -->
     <div id="elementModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="elementName"></h2>
-            <p>Atomic Number: <span id="atomicNumber"></span></p>
-            <p>Symbol: <span id="elementSymbol"></span></p>
-            <p>Atomic Mass: <span id="atomicMass"></span></p>
+            <button class="close" aria-label="Close modal">&times;</button>
+            <div class="modal-header">
+                <div class="modal-element-symbol" id="modalSymbolBadge"></div>
+                <h2 id="elementName"></h2>
+            </div>
+            <div class="modal-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Atomic Number</span>
+                        <span id="atomicNumber" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Symbol</span>
+                        <span id="elementSymbol" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Atomic Mass</span>
+                        <span id="atomicMass" class="info-value"></span>
+                    </div>
+                </div>
+                <div class="modal-decoration">⚛️</div>
+            </div>
         </div>
     </div>
 
@@ -623,8 +647,9 @@
                     document.getElementById('elementName').textContent = elementInfo.name;
                     document.getElementById('atomicNumber').textContent = elementInfo.atomic_number;
                     document.getElementById('elementSymbol').textContent = elementInfo.symbol;
+                    document.getElementById('modalSymbolBadge').textContent = elementInfo.symbol;
                     document.getElementById('atomicMass').textContent = elementInfo.atomic_mass.toFixed(3);
-                    modal.style.display = "block";
+                    modal.style.display = "flex"; // Changed to flex for centering
                 }
             });
         });
