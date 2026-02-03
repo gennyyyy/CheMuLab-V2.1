@@ -82,7 +82,16 @@
                 msg.textContent = 'Registering...';
                 try {
                     // Call AuthService.register which will link anonymous account if present
-                    const user = await AuthService.register(username || email.split('@')[0], email, password);
+                    const result = await AuthService.register(username || email.split('@')[0], email, password);
+
+                    if (result && result.emailSent) {
+                        msg.textContent = 'Registered. ' + result.message;
+                        updateUiForUser(null);
+                        return;
+                    }
+
+                    // Legacy/Fallback handling if it returns a user object directly
+                    const user = result;
                     msg.textContent = 'Registered and linked — UID: ' + (user && user.uid ? user.uid : 'unknown');
                     try {
                         await DiscoveryService.syncUserData(user.uid);

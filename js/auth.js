@@ -356,7 +356,19 @@ const AuthService = {
             }, 2000);
         }
 
-        return firebase.auth().currentUser;
+        // Send verification email
+        try {
+            await firebase.auth().currentUser.sendEmailVerification();
+            console.info('Verification email sent to:', email);
+        } catch (emailErr) {
+            console.error('Failed to send verification email:', emailErr);
+            // We don't block registration on this, but user will need to resend/verify
+        }
+
+        // Force logout so they can't access the app until they verify (and log in again)
+        await this.logout();
+
+        return { emailSent: true, message: 'Account created. Please verify your email before logging in.' };
     },
 
     // Sign in using username or email and password
@@ -374,6 +386,21 @@ const AuthService = {
         }
 
         const userCred = await firebase.auth().signInWithEmailAndPassword(email, password);
+        const user = userCred.user;
+
+        // Check if email verification is required
+        if (!user.emailVerified) {
+            const creationTime = new Date(user.metadata.creationTime);
+
+            // If account was created AFTER enforcement date, require verification
+            if (creationTime > VERIFICATION_ENFORCEMENT_DATE) {
+                console.warn('Login blocked: Email not verified for new account', { uid: user.uid, created: creationTime });
+                await this.logout(); // valid session, but access denied
+                throw new Error('Please verify your email address to log in.');
+            } else {
+                console.info('Allowing unverified login for legacy account', { uid: user.uid, created: creationTime });
+            }
+        }
 
         // After successful sign-in, attempt to migrate any legacy local progress keyed by username (if identifier was username)
         try {
@@ -383,7 +410,7 @@ const AuthService = {
                 if (legacy) {
                     const parsed = JSON.parse(legacy);
                     if (window.DiscoveryService && DiscoveryService.saveUserData) {
-                        await DiscoveryService.saveUserData(userCred.user.uid, parsed);
+                        await DiscoveryService.saveUserData(user.uid, parsed);
                     }
                     localStorage.removeItem(legacyKey);
                 }
@@ -392,7 +419,7 @@ const AuthService = {
             console.warn('Migration after login failed', e);
         }
 
-        return userCred.user;
+        return user;
     },
 
     // Sign out
@@ -447,6 +474,10 @@ const AuthService = {
         return firebase.auth().sendPasswordResetEmail(email);
     }
 };
+
+// Date after which new accounts must verify their email
+// Set to current date (2026-02-03) to grandfather existing users
+const VERIFICATION_ENFORCEMENT_DATE = new Date('2026-02-03T00:00:00Z');
 
 // Initialize auth listener
 AuthService.init();
