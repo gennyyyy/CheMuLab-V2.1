@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/firebase-init.js"></script>
+    <link rel="stylesheet" href="css/style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
@@ -117,6 +118,8 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            margin: 0;
+            /* Override global style.css margin */
         }
 
         /* Glassmorphism Container */
@@ -287,6 +290,67 @@
             backdrop-filter: blur(4px);
         }
 
+        /* Seamless Transitions */
+        .auth-forms-wrapper {
+            position: relative;
+            min-height: 250px;
+            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .auth-form {
+            width: 100%;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .auth-form.hidden {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            display: none;
+            /* We'll still use display none after animation but handle it via JS */
+        }
+
+        .auth-form.fade-in {
+            display: flex !important;
+            animation: formFadeIn 0.4s forwards;
+        }
+
+        .auth-form.fade-out {
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: formFadeOut 0.4s forwards;
+        }
+
+        @keyframes formFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes formFadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
         /* Hide unwanted global elements */
         .sidebar {
             display: none !important;
@@ -304,6 +368,26 @@
         <div class="shape shape-1"></div>
         <div class="shape shape-2"></div>
         <div class="shape shape-3"></div>
+
+        <!-- Floating Chemistry Elements -->
+        <div class="draggable-emoji" style="top: 15%; left: 10%;">
+            <div class="floating-content" style="font-size: 4rem; animation-duration: 4s; opacity: 0.6;">🧪</div>
+        </div>
+        <div class="draggable-emoji" style="top: 60%; left: 15%;">
+            <div class="floating-content"
+                style="font-size: 3.5rem; animation-duration: 5s; animation-direction: reverse; opacity: 0.5;">⚗️</div>
+        </div>
+        <div class="draggable-emoji" style="top: 20%; left: 80%;">
+            <div class="floating-content" style="font-size: 4.5rem; animation-duration: 6s; opacity: 0.6;">⚛️</div>
+        </div>
+        <div class="draggable-emoji" style="top: 70%; left: 75%;">
+            <div class="floating-content"
+                style="font-size: 3.8rem; animation-duration: 4.5s; animation-direction: reverse; opacity: 0.5;">🧬
+            </div>
+        </div>
+        <div class="draggable-emoji" style="top: 40%; left: 85%;">
+            <div class="floating-content" style="font-size: 3rem; animation-duration: 5.5s; opacity: 0.4;">🧩</div>
+        </div>
     </div>
     <div class="app-container">
         <div class="top-bar">
@@ -319,42 +403,45 @@
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
 
-                <!-- Login Form -->
-                <form id="loginForm" class="auth-form">
-                    <h2>Sign In</h2>
-                    <input type="email" id="loginEmail" placeholder="Email" required>
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                    <div style="text-align: right; margin-top: -10px;">
-                        <button type="button" id="showForgotBtn" class="text-link">Forgot Password?</button>
-                    </div>
-                    <button type="submit">Sign In</button>
-                </form>
+                <div class="auth-forms-wrapper">
+                    <!-- Login Form -->
+                    <form id="loginForm" class="auth-form">
+                        <h2>Sign In</h2>
+                        <input type="email" id="loginEmail" placeholder="Email" required>
+                        <input type="password" id="loginPassword" placeholder="Password" required>
+                        <div style="text-align: right; margin-top: -10px;">
+                            <button type="button" id="showForgotBtn" class="text-link">Forgot Password?</button>
+                        </div>
+                        <button type="submit">Sign In</button>
+                    </form>
 
-                <!-- Register Form (Initially Hidden) -->
-                <form id="registerForm" class="auth-form" style="display: none;">
-                    <h2>Create Account</h2>
-                    <input type="email" id="registerEmail" placeholder="Email" required>
-                    <input type="password" id="registerPassword" placeholder="Password" required>
-                    <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
-                    <button type="submit">Create Account</button>
-                </form>
+                    <!-- Register Form -->
+                    <form id="registerForm" class="auth-form hidden">
+                        <h2>Create Account</h2>
+                        <input type="email" id="registerEmail" placeholder="Email" required>
+                        <input type="password" id="registerPassword" placeholder="Password" required>
+                        <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+                        <button type="submit">Create Account</button>
+                    </form>
+
+                    <!-- Forgot Password Form -->
+                    <form id="forgotPasswordForm" class="auth-form hidden">
+                        <h2>Reset Password</h2>
+                        <p class="small" style="text-align: center; margin-bottom: 10px; color: var(--text-muted);">
+                            Enter
+                            your email to receive
+                            a password reset link (this will be sent to your spam email).</p>
+                        <input type="email" id="forgotEmail" placeholder="Email" required>
+                        <button type="submit">Send Reset Link</button>
+                        <button type="button" id="backToSignIn" class="text-link">Back to Sign In</button>
+                    </form>
+                </div>
 
                 <div class="auth-toggle">
                     <div id="authToggleContainer">
-                        <button id="toggleAuth">Don't have an account? Sign up</button>
+                        <button id="toggleAuth" type="button">Don't have an account? Sign up</button>
                     </div>
                 </div>
-
-                <!-- Forgot Password Form (Initially Hidden) -->
-                <form id="forgotPasswordForm" class="auth-form" style="display: none;">
-                    <h2>Reset Password</h2>
-                    <p class="small" style="text-align: center; margin-bottom: 10px; color: var(--text-muted);">Enter
-                        your email to receive
-                        a password reset link (this will be sent to your spam email).</p>
-                    <input type="email" id="forgotEmail" placeholder="Email" required>
-                    <button type="submit">Send Reset Link</button>
-                    <button type="button" id="backToSignIn" class="text-link">Back to Sign In</button>
-                </form>
             </div>
             <script src="js/auth.js"></script>
             <script>
@@ -391,15 +478,28 @@
 
                 // Toggle between login and register forms
                 toggleButton.addEventListener('click', () => {
-                    const isLogin = loginForm.style.display !== 'none';
-                    loginForm.style.display = isLogin ? 'none' : 'flex';
-                    registerForm.style.display = isLogin ? 'flex' : 'none';
-                    forgotForm.style.display = 'none';
+                    const isLogin = !loginForm.classList.contains('hidden');
+                    const currentForm = isLogin ? loginForm : registerForm;
+                    const nextForm = isLogin ? registerForm : loginForm;
+
+                    currentForm.classList.add('fade-out');
+                    setTimeout(() => {
+                        currentForm.classList.add('hidden');
+                        currentForm.classList.remove('fade-out');
+
+                        nextForm.classList.remove('hidden');
+                        nextForm.classList.add('fade-in');
+
+                        setTimeout(() => {
+                            nextForm.classList.remove('fade-in');
+                        }, 400);
+                    }, 400);
+
                     toggleButton.textContent = isLogin ?
                         'Already have an account? Sign in' :
                         "Don't have an account? Sign up";
+
                     clearMessages();
-                    // Clear all input fields
                     document.querySelectorAll('input').forEach(input => {
                         input.classList.remove('input-error');
                     });
@@ -407,19 +507,37 @@
 
                 // Show Forgot Password Form
                 showForgotBtn.addEventListener('click', () => {
-                    loginForm.style.display = 'none';
-                    registerForm.style.display = 'none';
-                    forgotForm.style.display = 'flex';
-                    authToggleContainer.style.display = 'none';
+                    loginForm.classList.add('fade-out');
+                    setTimeout(() => {
+                        loginForm.classList.add('hidden');
+                        loginForm.classList.remove('fade-out');
+
+                        forgotForm.classList.remove('hidden');
+                        forgotForm.classList.add('fade-in');
+                        authToggleContainer.style.display = 'none';
+
+                        setTimeout(() => {
+                            forgotForm.classList.remove('fade-in');
+                        }, 400);
+                    }, 400);
                     clearMessages();
                 });
 
                 // Back to Sign In from Forgot Password
                 backToSignInBtn.addEventListener('click', () => {
-                    loginForm.style.display = 'flex';
-                    registerForm.style.display = 'none';
-                    forgotForm.style.display = 'none';
-                    authToggleContainer.style.display = 'block';
+                    forgotForm.classList.add('fade-out');
+                    setTimeout(() => {
+                        forgotForm.classList.add('hidden');
+                        forgotForm.classList.remove('fade-out');
+
+                        loginForm.classList.remove('hidden');
+                        loginForm.classList.add('fade-in');
+                        authToggleContainer.style.display = 'block';
+
+                        setTimeout(() => {
+                            loginForm.classList.remove('fade-in');
+                        }, 400);
+                    }, 400);
                     clearMessages();
                 });
 
@@ -604,6 +722,95 @@
                         window.location.href = 'index.html';
                     }
                 }
+
+                // Draggable Emoji Logic for Auth Page
+                window.addEventListener('load', () => {
+                    const emojis = document.querySelectorAll('.draggable-emoji');
+                    const background = document.querySelector('.background');
+
+                    emojis.forEach(wrapper => {
+                        let isDragging = false;
+                        let initialX;
+                        let initialY;
+                        let xOffset = 0;
+                        let yOffset = 0;
+
+                        // Note: We DO NOT set wrapper.style.left/top here in pixels.
+                        // We let the CSS % positions stay until the first drag.
+
+                        const dragStart = (e) => {
+                            isDragging = true;
+                            const floatingItem = wrapper.querySelector('.floating-content');
+                            if (floatingItem) {
+                                floatingItem.style.animationPlayState = 'paused';
+                            }
+
+                            // Capture the CURRENT pixel position right when dragging starts
+                            const rect = wrapper.getBoundingClientRect();
+                            const bgRect = background.getBoundingClientRect();
+
+                            // Transform current position into pixel offsets
+                            xOffset = rect.left - bgRect.left;
+                            yOffset = rect.top - bgRect.top;
+
+                            // Now lock it to absolute pixels so we can move it
+                            wrapper.style.left = xOffset + 'px';
+                            wrapper.style.top = yOffset + 'px';
+                            wrapper.style.position = 'absolute';
+                            wrapper.style.margin = '0';
+
+                            if (e.type === "touchstart") {
+                                initialX = e.touches[0].clientX - xOffset;
+                                initialY = e.touches[0].clientY - yOffset;
+                            } else {
+                                initialX = e.clientX - xOffset;
+                                initialY = e.clientY - yOffset;
+                            }
+
+                            wrapper.style.zIndex = '100';
+                        };
+
+                        const drag = (e) => {
+                            if (isDragging) {
+                                let currentEventX, currentEventY;
+
+                                if (e.type === "touchmove") {
+                                    e.preventDefault();
+                                    currentEventX = e.touches[0].clientX;
+                                    currentEventY = e.touches[0].clientY;
+                                } else {
+                                    e.preventDefault();
+                                    currentEventX = e.clientX;
+                                    currentEventY = e.clientY;
+                                }
+
+                                xOffset = currentEventX - initialX;
+                                yOffset = currentEventY - initialY;
+
+                                wrapper.style.left = xOffset + 'px';
+                                wrapper.style.top = yOffset + 'px';
+                            }
+                        };
+
+                        const dragEnd = () => {
+                            if (isDragging) {
+                                isDragging = false;
+                                wrapper.style.zIndex = '10';
+                                const floatingItem = wrapper.querySelector('.floating-content');
+                                if (floatingItem) {
+                                    floatingItem.style.animationPlayState = 'running';
+                                }
+                            }
+                        };
+
+                        wrapper.addEventListener('mousedown', dragStart);
+                        wrapper.addEventListener('touchstart', dragStart, { passive: false });
+                        document.addEventListener('mousemove', drag);
+                        document.addEventListener('touchmove', drag, { passive: false });
+                        document.addEventListener('mouseup', dragEnd);
+                        document.addEventListener('touchend', dragEnd);
+                    });
+                });
             </script>
 
         </div>

@@ -6,41 +6,40 @@
 }
 
 :root {
+    /* Glassmorphic Theme - Light, Airy, & Glossy */
     /* Premium Modern Light Theme - Lively & Vibrant */
-    --bg-main: linear-gradient(135deg, #e0e7ff 0%, #f5f3ff 100%);
-    /* Soft Indigo Gradient */
+    --bg-main: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+
+    /* Frostier Glass Surfaces for Light Mode (Higher Contrast) */
     --bg-sidebar: rgba(255, 255, 255, 0.7);
     --bg-header: rgba(255, 255, 255, 0.7);
     --bg-card: rgba(255, 255, 255, 0.8);
-    --bg-card-hover: #ffffff;
-    --bg-item-active: #e0e7ff;
-    /* Indigo-100 */
+    --bg-card-hover: rgba(255, 255, 255, 0.9);
+    --bg-item-active: rgba(255, 255, 255, 1);
 
     --text-main: #1e1b4b;
-    /* Indigo-950 - richer than slate */
-    --text-light: #4338ca;
-    /* Indigo-700 - more colorful than slate */
+    /* Dark Indigo */
+    --text-light: #475569;
+    /* Slate-600 */
     --text-on-accent: #ffffff;
 
-    --border-color: rgba(199, 210, 254, 0.6);
-    /* Indigo-200 */
-    --accent-color: #4f46e5;
-    /* Indigo-600 */
-    --accent-hover: #4338ca;
-    /* Indigo-700 */
+    --border-color: rgba(255, 255, 255, 0.2);
+    /* Subtle White Border */
 
-    --shadow-sm: 0 1px 2px 0 rgba(79, 70, 229, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -2px rgba(79, 70, 229, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(79, 70, 229, 0.1), 0 4px 6px -4px rgba(79, 70, 229, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(79, 70, 229, 0.1), 0 8px 10px -6px rgba(79, 70, 229, 0.05);
+    /* Neon Cyan-to-Green Accent */
+    --accent-gradient: linear-gradient(90deg, #06b6d4 0%, #10b981 100%);
+    --accent-color: #10b981;
+    --accent-hover: #059669;
 
-    --glass-blur: 20px;
-    --glass-border: rgba(255, 255, 255, 0.6);
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    --glass-blur: 40px;
+    --glass-border: rgba(255, 255, 255, 0.3);
 
     /* Glow System */
-    --glow-accent: 0 0 15px rgba(79, 70, 229, 0.3);
-    --glow-accent-strong: 0 0 25px rgba(79, 70, 229, 0.5);
-    --glow-directional: 0 10px 20px -5px rgba(79, 70, 229, 0.35), 0 -2px 10px rgba(79, 70, 229, 0.1);
+    --glow-accent: 0 0 15px rgba(16, 185, 129, 0.2);
 
     /* Border Radius System */
     --radius-sm: 8px;
@@ -53,52 +52,140 @@
 }
 
 [data-theme="dark"] {
-    /* Advanced Dark Theme (Slate/Indigo) */
-    --bg-main: #020617;
-    /* Slate-950 */
-    --bg-sidebar: rgba(15, 23, 42, 0.7);
-    /* Slate-900 */
-    --bg-header: rgba(15, 23, 42, 0.7);
-    --bg-card: #0f172a;
-    /* Slate-900 */
-    --bg-card-hover: #1e293b;
-    /* Slate-800 */
-    --bg-item-active: #1e3a8a;
-    /* Blue-900 */
+    /* Deep Moody Glass Theme */
+    --bg-main: radial-gradient(circle at top right, #1e1b4b 0%, #0f172a 100%);
+
+    --bg-sidebar: rgba(255, 255, 255, 0.05);
+    --bg-header: rgba(255, 255, 255, 0.05);
+    --bg-card: rgba(15, 23, 42, 0.8);
+    --bg-card-hover: rgba(30, 41, 59, 0.9);
+    --bg-item-active: rgba(255, 255, 255, 0.1);
 
     --text-main: #f8fafc;
-    /* Slate-50 */
     --text-light: #94a3b8;
-    /* Slate-400 */
     --text-on-accent: #ffffff;
 
-    --border-color: rgba(51, 65, 85, 0.5);
-    /* Slate-700 */
-    --accent-color: #0369a1;
-    /* Sky-700 (Muted for Dark Mode) */
-    --accent-hover: #075985;
-    /* Sky-800 */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.12);
 
-    --glass-border: rgba(255, 255, 255, 0.05);
-
-    /* Glow System - More vibrant in dark mode */
-    --glow-accent: 0 0 20px rgba(3, 105, 161, 0.4);
-    --glow-accent-strong: 0 0 35px rgba(3, 105, 161, 0.6);
-    --glow-directional: 0 10px 25px -5px rgba(3, 105, 161, 0.45), 0 -2px 12px rgba(3, 105, 161, 0.15);
+    --glow-accent: 0 0 20px rgba(6, 182, 212, 0.4);
 }
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: var(--bg-main);
+    background: #0f172a;
+    /* Deep Slate Base */
+    background-image: var(--bg-main);
     background-attachment: fixed;
     margin: 0;
     padding: 0;
     min-height: 100vh;
     color: var(--text-main);
     line-height: 1.6;
-    /* Increased for readability */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* Starfield Overlay - Celestial Dust */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 100px 130px, #ffffff, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 150px 150px, #ffffff, rgba(0, 0, 0, 0));
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    opacity: 0;
+    /* Hidden by default in Light Mode */
+    visibility: hidden;
+    z-index: -2;
+    pointer-events: none;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Deep Glowing Blobs */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.2) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.2) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
+    filter: blur(80px);
+    z-index: -1;
+    pointer-events: none;
+    animation: pulse-glow 20s infinite alternate ease-in-out;
+}
+
+@keyframes pulse-glow {
+    0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(1.2) rotate(5deg);
+        opacity: 0.9;
+    }
+}
+
+/* Global Floating/Draggable Elements */
+@keyframes emoji-float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0);
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(5deg);
+    }
+}
+
+.draggable-emoji {
+    cursor: grab;
+    user-select: none;
+    z-index: 10;
+    position: absolute;
+    pointer-events: auto;
+    /* No animation or transform on this element */
+}
+
+.floating-content {
+    animation: emoji-float 3s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    /* Let clicks pass through to the draggable wrapper */
+}
+
+.draggable-emoji:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+}
+
+/* Celestial Effects for Dark Mode */
+[data-theme="dark"] body::before {
+    opacity: 0.2;
+    visibility: visible;
+}
+
+[data-theme="dark"] body::after {
+    opacity: 0.8;
+    /* Slightly more vibrant blobs in dark mode */
+    visibility: visible;
 }
 
 h1,
@@ -110,19 +197,31 @@ h6,
 .logo {
     font-family: 'Plus Jakarta Sans', sans-serif;
     letter-spacing: -0.03em;
-    /* Tighter premium look */
     font-weight: 700;
+    color: var(--text-main) !important;
+    /* Force theme-aware heading color */
+}
+
+/* Specific Logo Override */
+.logo {
+    color: var(--text-main);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
 }
 
 .app-container {
     width: 100%;
     min-height: 100vh;
     /* Changed from height to min-height */
-    background: var(--bg-main);
+    /* background: var(--bg-main);  REMOVED: Allows body decorative background to show through */
+    background: transparent;
     overflow-x: hidden;
     /* Changed from overflow: hidden to allow vertical scroll */
     position: relative;
-    padding-top: var(--header-height);
+    padding-top: calc(var(--header-height) + 2rem);
     padding-bottom: 20px;
 }
 
@@ -132,18 +231,23 @@ h6,
     background-color: var(--bg-header);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    padding: 0 2rem 0 1rem;
+    padding: 0 2rem;
+    /* Removed margin to fix fixed positioning calculation */
+    border-radius: var(--radius-lg);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
     position: fixed;
     height: var(--header-height);
-    width: 100%;
-    top: 0;
-    left: 0;
+    width: auto;
+    /* Use left/right instead of width to handle scrollbars and margins better */
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
     z-index: 1100;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    color: var(--text-main);
 }
 
 .header-left {
@@ -301,19 +405,24 @@ h6,
 .sidebar {
     width: 240px;
     background-color: var(--bg-sidebar);
+    color: var(--text-main);
+    /* Force White Text */
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
-    height: calc(100vh - var(--header-height));
+    height: calc(100vh - var(--header-height) - 3rem);
     padding: 1.5rem 1rem;
     position: fixed;
-    left: 0;
-    top: var(--header-height);
+    left: 1rem;
+    /* Floating from side */
+    top: calc(var(--header-height) + 2rem);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    border-right: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
+    box-shadow: var(--shadow-xl);
 }
 
 .sidebar-nav {
@@ -421,7 +530,8 @@ h6,
     gap: 12px;
     padding: 12px 16px;
     border-radius: var(--radius-md);
-    color: var(--text-light);
+    color: var(--text-main);
+    /* Restore theme-aware color */
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 600;
@@ -429,64 +539,33 @@ h6,
 }
 
 .sidebar-item:hover {
-    background-color: var(--bg-card-hover);
+    background-color: rgba(0, 0, 0, 0.05);
+    /* Subtle dark hover for light mode */
     color: var(--text-main);
     transform: translateX(4px);
 }
 
 .sidebar-item.active {
-    background-color: var(--bg-item-active);
-    color: var(--accent-color);
+    background: var(--accent-gradient);
+    color: var(--text-on-accent);
     font-weight: 700;
     position: relative;
-    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.1), var(--glow-accent);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
 }
 
 .sidebar-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 20%;
-    height: 60%;
-    width: 4px;
-    background-color: var(--accent-color);
-    border-radius: 0 4px 4px 0;
+    display: none;
+    /* Removed in favor of full neon pill style */
 }
 
-.sidebar-item.active .sidebar-icon {
-    color: var(--accent-color);
+.logo {
+    color: var(--text-main);
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-decoration: none;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.04em;
 }
-
-/* Click-to-select fallback styles */
-.element.selected {
-    border: 3px solid #FFD700 !important;
-    /* Gold border */
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-    transform: scale(1.05);
-}
-
-.crafting-slot.populated {
-    animation: pulse-border 0.3s ease;
-}
-
-@keyframes pulse-border {
-    0% {
-        transform: scale(1);
-        border-color: var(--border-color);
-    }
-
-    50% {
-        transform: scale(1.05);
-        border-color: #FFD700;
-    }
-
-    100% {
-        transform: scale(1);
-        border-color: var(--border-color);
-    }
-}
-
-/* DELETED PREVIOUS DUPLICATE ACTIVE STATE */
 
 .sidebar-icon {
     width: 24px;
@@ -504,9 +583,11 @@ h6,
 }
 
 .main-content {
-    margin-left: 240px;
-    padding: 2rem;
-    min-height: calc(100vh - var(--header-height));
+    margin-left: 260px;
+    /* Account for 240px sidebar + 20px gap */
+    padding: 1rem 2rem 2rem 1rem;
+    margin-top: 1rem;
+    min-height: calc(100vh - var(--header-height) - 4rem);
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -586,15 +667,18 @@ h6,
     transform: scale(1.05);
 }
 
-/* Hero Banner - Unified Modern Style */
+/* Hero Banner - Unified Modern Style (Glassmorphic) */
 .hero {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 3rem;
     padding: 3.5rem;
-    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-hover) 100%);
-    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    /* Glass background */
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     margin-bottom: 2.5rem;
     box-shadow: var(--shadow-lg);
@@ -614,47 +698,58 @@ h6,
 
 .hero p {
     margin: 0 0 2.5rem 0;
-    color: var(--text-light);
+    color: var(--text-main);
+    /* Stronger contrast for description */
+    opacity: 0.8;
     font-size: 1.25rem;
     font-weight: 500;
     max-width: 580px;
     line-height: 1.6;
 }
 
+.muted {
+    color: var(--text-main);
+    opacity: 0.6;
+    font-size: 0.9rem;
+}
+
 .hero-buttons {
     display: flex;
-    gap: 1rem;
+    gap: 1.25rem;
     flex-wrap: wrap;
 }
 
 .hero-buttons a {
-    padding: 1rem 2rem;
-    background: var(--accent-color);
-    color: var(--text-on-accent);
+    padding: 1rem 2.5rem;
+    background: var(--accent-gradient);
+    /* Neon Gradient */
+    color: #ffffff;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
+    /* pill shape */
     text-decoration: none;
     font-weight: 700;
-    font-size: 1.0625rem;
+    font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: var(--shadow-md), var(--glow-accent);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .hero-buttons a:hover {
-    background: var(--accent-hover);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+    filter: brightness(1.1);
 }
 
 .hero-buttons a.secondary {
-    background: var(--bg-card);
+    background: rgba(0, 0, 0, 0.05);
+    /* Light glass secondary */
     color: var(--text-main);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
 }
 
 .hero-buttons a.secondary:hover {
-    background: var(--bg-card-hover);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .hero-image {
@@ -682,8 +777,10 @@ h6,
     flex: 1;
     min-width: 240px;
     background: var(--bg-card);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     padding: 1.75rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     text-decoration: none;
@@ -705,8 +802,9 @@ h6,
 
 .quick-action-card:hover {
     transform: translateY(-6px);
-    box-shadow: var(--shadow-xl), var(--glow-accent);
-    border-color: var(--accent-color);
+    background: var(--bg-card-hover);
+    box-shadow: var(--shadow-xl), 0 0 20px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .back-btn {
@@ -2232,7 +2330,7 @@ h6,
         grid-template-columns: 1fr;
     }
 
-    .friends-panel {}
+
 
     .chat-panel {
         order: 1;
@@ -2338,7 +2436,9 @@ h6,
     width: 350px;
     height: 500px;
     background-color: var(--bg-card);
-    border: 2px solid var(--border-color);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
@@ -2364,13 +2464,14 @@ h6,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .chatbot-header h3 {
     margin: 0;
     font-size: 1.1rem;
-    font-family: 'Bernoru', cursive;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
 }
 
 .chatbot-close {
@@ -2390,7 +2491,8 @@ h6,
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background-color: var(--bg-main);
+    background-color: transparent;
+    /* Show glass through messages */
 }
 
 .message {
@@ -2412,8 +2514,8 @@ h6,
 
 .message.user {
     align-self: flex-end;
-    background-color: var(--accent-color);
-    color: var(--text-on-accent);
+    background: var(--accent-gradient);
+    color: #ffffff;
     border-bottom-right-radius: 2px;
     border-color: transparent;
 }
@@ -2483,4 +2585,89 @@ h6,
         bottom: 100px;
         height: 60vh;
     }
+}
+
+/* Extreme Readability Overrides for Light Mode */
+[data-theme="light"] .hero h1,
+[data-theme="light"] .hero p,
+[data-theme="light"] .sidebar-item,
+[data-theme="light"] .quick-action-card,
+[data-theme="light"] .quick-action-card strong,
+[data-theme="light"] .logo,
+[data-theme="light"] .top-bar,
+[data-theme="light"] .nav-links a,
+[data-theme="light"] .sign-in,
+[data-theme="light"] .chatbot-header,
+[data-theme="light"] .chatbot-header h3,
+[data-theme="light"] .chatbot-close,
+[data-theme="light"] .about-feature-card h4,
+[data-theme="light"] .about-section h2,
+[data-theme="light"] .about-section h3,
+[data-theme="light"] .friends-panel h2,
+[data-theme="light"] .friends-panel h3,
+[data-theme="light"] .chat-header,
+[data-theme="light"] .profile-section h1,
+[data-theme="light"] .profile-info h2,
+[data-theme="light"] .info-label,
+[data-theme="light"] .progress-tracker-section h2,
+[data-theme="light"] .progress-section h2,
+[data-theme="light"] .discoveries-section h2,
+[data-theme="light"] .stat-item h3,
+[data-theme="light"] .discovery-name,
+[data-theme="light"] .discovery-symbol,
+[data-theme="light"] .discovery-date,
+[data-theme="light"] .list-view-profile-btn,
+[data-theme="light"] #viewProfileBtn,
+[data-theme="light"] .welcome,
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] section.hero h2,
+[data-theme="light"] section.hero p {
+    color: #1e1b4b !important;
+    /* Force Dark Indigo */
+}
+
+
+[data-theme="light"] .list-view-profile-btn,
+[data-theme="light"] #viewProfileBtn {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .progress-section,
+[data-theme="light"] .discoveries-section,
+[data-theme="light"] .stat-item,
+[data-theme="light"] .discovery-item {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .progress-bar-container {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .hero-buttons a.secondary {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #1e1b4b !important;
+}
+
+[data-theme="light"] .sidebar-item:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    color: #1e1b4b !important;
+}
+
+[data-theme="light"] .sidebar-item.active {
+    color: #ffffff !important;
+    /* Keep active pill text white */
+}
+
+[data-theme="light"] .muted {
+    color: #1e1b4b !important;
+    opacity: 0.7 !important;
+}
+
+[data-theme="light"] .user-profile-name,
+[data-theme="light"] .user-profile-status {
+    color: #1e1b4b !important;
 }

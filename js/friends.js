@@ -328,7 +328,7 @@
                         <strong>${escapeHtml(data.username || data.email || data.uid)}</strong>
                         <div class="muted small">${escapeHtml(data.email || '')}</div>
                     </div>
-                    <button class="list-view-profile-btn" style="background: rgba(255,255,255,0.3); border: 1px solid rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: auto;">View</button>
+                    <button class="list-view-profile-btn" style="background: var(--bg-card); border: 1px solid var(--glass-border); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; margin-left: auto; color: var(--text-main);">View</button>
                 `;
 
                 const viewBtn = div.querySelector('.list-view-profile-btn');
@@ -487,7 +487,7 @@
         $('#chatHeader').innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <span>${escapeHtml(friendData.username || friendData.email || 'Friend')}</span>
-                <button id="viewProfileBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">View Profile</button>
+                <button id="viewProfileBtn" style="background: var(--bg-card); border: 1px solid var(--glass-border); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--text-main);">View Profile</button>
             </div>
         `;
 

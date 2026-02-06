@@ -211,7 +211,38 @@
         width: 80px;
         height: 80px;
     }
+}
 
+.combine-btn {
+    width: 100%;
+    margin: 20px 0;
+    padding: 1.25rem;
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.combine-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+    filter: brightness(1.1);
+}
+
+.combine-btn:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    box-shadow: none;
+    border: 1px solid var(--glass-border);
+}
+
+@media (max-width: 480px) {
     .slot-label {
         font-size: 0.75em;
         padding: 5px;
@@ -232,7 +263,8 @@
 }
 
 .slot-label {
-    color: #666;
+    color: var(--text-main);
+    opacity: 0.8;
     font-size: 0.95em;
     font-weight: 700;
     text-align: center;
@@ -383,7 +415,7 @@
 }
 
 .discovery-item {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-card);
     padding: 10px;
     border-radius: var(--radius-sm);
     display: flex;
@@ -507,7 +539,7 @@
     display: block;
     width: 18px;
     height: 18px;
-    color: #ffffff;
+    color: var(--text-main);
 }
 
 .icon-btn:hover {
@@ -655,4 +687,26 @@ main #discoveriesToggleBtn:hover {
     #importDiscoveriesInput {
         width: 100%;
     }
+}
+
+/* Extreme Readability Overrides for Light Mode - Lab Interface */
+[data-theme="light"] .slot-label,
+[data-theme="light"] .discovery-item .element-name,
+[data-theme="light"] .discovery-item .element-symbol,
+[data-theme="light"] .elements-panel h3,
+[data-theme="light"] .discoveries-panel h3,
+[data-theme="light"] .icon-btn,
+[data-theme="light"] .icon-btn svg {
+    color: #1e1b4b !important;
+    /* Force Dark Indigo */
+}
+
+[data-theme="light"] .icon-btn {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .discovery-item {
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
 }

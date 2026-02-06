@@ -3,7 +3,7 @@ class ProgressTracker {
         this.container = document.getElementById(containerId);
         this.currentUser = AuthService.getCurrentUser();
         this.initialize();
-        
+
         // Set up periodic sync
         this.setupSync();
     }
@@ -30,12 +30,12 @@ class ProgressTracker {
 
     initialize() {
         if (!this.container) return;
-        
+
         console.log('[ProgressTracker] initialize() called, currentUser:', this.currentUser);
-        
+
         // Create progress tracker elements
         this.createProgressElements();
-        
+
         // Wait for auth to be ready - if no user yet, wait for firebaseReady event
         if (this.currentUser && this.currentUser.uid) {
             console.log('[ProgressTracker] User already available:', this.currentUser.uid);
@@ -58,14 +58,14 @@ class ProgressTracker {
                 console.warn('[ProgressTracker] Firebase not available');
             }
         }
-        
+
         // Set up sync status display
         this.initializeSyncStatus();
     }
 
     initializeWithUser() {
         console.log('[ProgressTracker] initializeWithUser() called');
-        
+
         if (!this.currentUser || !this.currentUser.uid) {
             console.warn('[ProgressTracker] Still no user in initializeWithUser');
             return;
@@ -73,14 +73,14 @@ class ProgressTracker {
 
         // Set up real-time Firestore listener
         this.setupFirestoreListener();
-        
+
         // Then load progress (which will populate from Firestore if available)
         // Add a small delay to allow listener to initialize
         setTimeout(() => {
             console.log('[ProgressTracker] Calling loadProgress after listener setup');
             this.loadProgress();
         }, 100);
-        
+
         // Listen for progress updates from chemistry_craft.js
         document.addEventListener('progressUpdate', (e) => {
             console.log('[ProgressTracker] Received progressUpdate event:', e.detail);
@@ -105,7 +105,7 @@ class ProgressTracker {
                 .onSnapshot((doc) => {
                     console.log('[ProgressTracker] Firestore onSnapshot callback triggered');
                     console.log('[ProgressTracker] Document exists:', doc.exists);
-                    
+
                     if (doc.exists) {
                         const data = doc.data();
                         console.log('[ProgressTracker] Firestore data:', {
@@ -114,10 +114,10 @@ class ProgressTracker {
                             hasProgress: !!data.progress,
                             progress: data.progress
                         });
-                        
+
                         if (data.discoveries && Array.isArray(data.discoveries)) {
                             console.log('[ProgressTracker] Processing discoveries array with', data.discoveries.length, 'items');
-                            
+
                             // Use the progress from Firestore if available, otherwise calculate
                             let progress = data.progress;
                             if (!progress) {
@@ -126,26 +126,26 @@ class ProgressTracker {
                             } else {
                                 console.log('[ProgressTracker] Using progress from Firestore:', progress);
                             }
-                            
+
                             // Create userData object
                             const userData = {
                                 credentials: { username: this.currentUser.username || this.currentUser.uid },
                                 progress: progress,
                                 discoveries: data.discoveries
                             };
-                            
+
                             console.log('[ProgressTracker] Updating display with:', {
                                 completedDiscoveries: userData.progress.completedDiscoveries,
                                 totalDiscoveries: userData.discoveries.length
                             });
-                            
+
                             // Update localStorage
                             DiscoveryService.saveUserDataLocal(userId, userData);
-                            
+
                             // Update display
                             this.loadDiscoveries();
                             this.updateDisplay(userData.progress);
-                            
+
                             console.log('[ProgressTracker] Display updated successfully');
                         } else {
                             console.log('[ProgressTracker] No discoveries array found in Firestore data');
@@ -242,14 +242,14 @@ class ProgressTracker {
         const style = document.createElement('style');
         style.textContent = `
             .progress-section {
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--bg-card);
                 border-radius: 10px;
                 padding: 20px;
                 margin-bottom: 20px;
             }
 
             .progress-bar-container {
-                background: rgba(255, 255, 255, 0.2);
+                background: var(--bg-input);
                 border-radius: 10px;
                 height: 20px;
                 margin: 20px 0;
@@ -269,7 +269,7 @@ class ProgressTracker {
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                color: #000;
+                color: var(--text-main);
                 font-weight: bold;
             }
 
@@ -281,7 +281,7 @@ class ProgressTracker {
             }
 
             .stat-item {
-                background: rgba(255, 255, 255, 0.05);
+                background: var(--bg-card);
                 padding: 15px;
                 border-radius: 8px;
             }
@@ -293,7 +293,7 @@ class ProgressTracker {
             }
 
             .milestone {
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--bg-card);
                 padding: 8px;
                 border-radius: 5px;
                 text-align: center;
@@ -308,7 +308,7 @@ class ProgressTracker {
             }
 
             .discoveries-section {
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--bg-card);
                 border-radius: 10px;
                 padding: 20px;
             }
@@ -321,7 +321,7 @@ class ProgressTracker {
             }
 
             .discovery-item {
-                background: rgba(255, 255, 255, 0.1);
+                background: var(--bg-card);
                 padding: 15px;
                 border-radius: 8px;
                 text-align: center;
@@ -354,7 +354,7 @@ class ProgressTracker {
                 console.log('[ProgressTracker] Got data from Firestore, updating display');
                 // Save to localStorage for offline access
                 DiscoveryService.saveUserDataLocal(this.currentUser.uid, firestoreData);
-                
+
                 // Update display immediately
                 if (firestoreData.progress) {
                     console.log('[ProgressTracker] Calling updateDisplay with progress:', firestoreData.progress);
@@ -365,7 +365,7 @@ class ProgressTracker {
             }
 
             console.log('[ProgressTracker] No data from Firestore, checking localStorage');
-            
+
             // Fallback to localStorage if Firestore doesn't have data yet
             const userData = await DiscoveryService.getUserData(this.currentUser.uid);
             if (userData?.progress) {
@@ -397,9 +397,9 @@ class ProgressTracker {
             const db = window.firebase.firestore();
             console.log('[ProgressTracker] Fetching from Firestore for uid:', this.currentUser.uid);
             const doc = await db.collection('progress').doc(this.currentUser.uid).get();
-            
+
             console.log('[ProgressTracker] Firestore get() returned, doc.exists:', doc.exists);
-            
+
             if (doc.exists) {
                 const data = doc.data();
                 console.log('[ProgressTracker] Loaded from Firestore:', {
@@ -408,7 +408,7 @@ class ProgressTracker {
                     hasProgress: !!data.progress,
                     progress: data.progress
                 });
-                
+
                 // Construct userData object that matches our expected format
                 return {
                     credentials: { username: this.currentUser.username || this.currentUser.uid },
@@ -433,15 +433,15 @@ class ProgressTracker {
         const progressBar = document.getElementById('progressBar');
         const progressText = document.getElementById('progressText');
         const discoveryCount = document.getElementById('discoveryCount');
-        
+
         if (progressBar && progressText && discoveryCount) {
             const percentage = progress.progressPercentage || 0;
             const completed = progress.completedDiscoveries || 0;
-            
+
             progressBar.style.width = `${percentage}%`;
             progressText.textContent = `${Math.round(percentage)}%`;
             discoveryCount.textContent = `${completed} / 118`;
-            
+
             console.log('[ProgressTracker] Updated display:', { percentage, completed });
         }
 
@@ -465,13 +465,13 @@ class ProgressTracker {
 
         const discoveries = DiscoveryService.getDiscoveries(this.currentUser.uid);
         const discoveryList = document.getElementById('discoveriesList');
-        
+
         console.log('[ProgressTracker] loadDiscoveries called:', {
             uid: this.currentUser.uid,
             discoveryCount: discoveries.length,
             discoveries: discoveries
         });
-        
+
         if (discoveryList) {
             if (!discoveries || discoveries.length === 0) {
                 discoveryList.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">No discoveries yet. Start combining elements in Your Lab!</div>';
