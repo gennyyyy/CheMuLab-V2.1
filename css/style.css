@@ -2030,7 +2030,7 @@ h6,
 .profile-info h2 {
     margin: 0 0 8px 0;
     font-size: 24px;
-    color: var(--text-main);
+    color: inherit;
 }
 
 .profile-info p {
@@ -2670,4 +2670,16 @@ h6,
 [data-theme="light"] .user-profile-name,
 [data-theme="light"] .user-profile-status {
     color: #1e1b4b !important;
+}
+
+/* Force high contrast for Profile Card details on green background */
+.profile-card .profile-info h2,
+.profile-card .profile-info .muted {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card .profile-info .muted {
+    opacity: 0.95 !important;
 }
