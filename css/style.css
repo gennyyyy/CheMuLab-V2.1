@@ -1902,8 +1902,8 @@ h6,
 .friends-panel {
     display: flex;
     flex-direction: column;
-    height: 80vh;
-    /* Fixed height to allow flex children to fill space */
+    min-height: 80vh;
+    /* Min-height so the panel can grow with content */
     padding: 1.5rem;
     background: var(--bg-card);
     border-radius: var(--radius-xl);
@@ -1941,8 +1941,8 @@ h6,
     display: flex;
     flex-direction: column;
     gap: 0;
-    min-height: 60px;
-    max-height: 50vh;
+    min-height: 120px;
+    max-height: 60vh;
     flex: 1;
     overflow-y: auto;
     padding-right: 6px;
@@ -2330,7 +2330,21 @@ h6,
         grid-template-columns: 1fr;
     }
 
+    /* Give the friends list more vertical room on mobile */
+    .friends-panel {
+        height: auto;
+        min-height: auto;
+    }
 
+    .friends-list {
+        max-height: none;
+        min-height: 150px;
+    }
+
+    .requests-section .friends-list {
+        max-height: none;
+        min-height: 80px;
+    }
 
     .chat-panel {
         order: 1;
