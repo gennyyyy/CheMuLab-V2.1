@@ -359,6 +359,19 @@
         .top-bar {
             display: none !important;
         }
+
+        /* Prevent the mobile sidebar overlay from blocking the auth page */
+        .app-container::before {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
+        /* Allow scrolling on small mobile screens */
+        html,
+        body.auth-page {
+            overflow: auto;
+            overflow-x: hidden;
+        }
     </style>
 
 </head>
