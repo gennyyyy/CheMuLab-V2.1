@@ -85,16 +85,6 @@
         const closeBtn = $('#closeProfileModal');
         if (closeBtn) closeBtn.onclick = () => profileModal.style.display = 'none';
         window.onclick = (e) => { if (e.target === profileModal) profileModal.style.display = 'none'; };
-
-        const unfriendBtn = $('#unfriendBtn');
-        if (unfriendBtn) unfriendBtn.onclick = async () => {
-            if (activeChat && activeChat.friendUid) {
-                if (confirm('Are you sure you want to unfriend this user? This will also delete your chat history with them.')) {
-                    await unfriend(activeChat.friendUid);
-                    profileModal.style.display = 'none';
-                }
-            }
-        };
     }
 
     // Listen for incoming friend requests (toUid == currentUser.uid)
@@ -597,9 +587,12 @@
 
             showMessage('Friend removed', false);
             loadFriends();
+            return true;
         } catch (e) {
             log('Unfriend failed', e);
             showMessage('Failed to unfriend: ' + (e.message || e), true);
+            alert('Failed to unfriend user. Please check your connection.');
+            return false;
         }
     }
 
@@ -619,6 +612,20 @@
         stats.textContent = 'Loading progress...';
 
         modal.style.display = 'flex';
+
+        // Set Unfriend Handler for this specific friend
+        const unfriendBtn = $('#unfriendBtn');
+        if (unfriendBtn) {
+            unfriendBtn.onclick = async () => {
+                if (confirm(`Are you sure you want to unfriend ${data.username || 'this user'}? This will also delete your chat history.`)) {
+                    const success = await unfriend(data.uid);
+                    if (success) {
+                        modal.style.display = 'none';
+                        alert('Friend removed successfully.');
+                    }
+                }
+            };
+        }
 
         try {
             const db = firebase.firestore();
