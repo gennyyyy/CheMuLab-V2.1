@@ -578,9 +578,14 @@
             const myFriendRef = db.collection('users').doc(currentUser.uid).collection('friends').doc(friendUid);
             batch.delete(myFriendRef);
 
-            // 2. Remove from friend's friends (best effort, depends on rules)
+            // 2. Remove from friend's friends (allowed by the new rule update)
             const theirFriendRef = db.collection('users').doc(friendUid).collection('friends').doc(currentUser.uid);
             batch.delete(theirFriendRef);
+
+            // 3. Remove chat history document
+            const chatId = makeChatId(currentUser.uid, friendUid);
+            const chatRef = db.collection('chats').doc(chatId);
+            batch.delete(chatRef);
 
             await batch.commit();
             log('Unfriend successful');
@@ -613,7 +618,7 @@
         joinDate.textContent = 'Loading join date...';
         stats.textContent = 'Loading progress...';
 
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
 
         try {
             const db = firebase.firestore();

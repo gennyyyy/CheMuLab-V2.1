@@ -212,9 +212,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // restore preference if exists
     try {
+        const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
         const stored = localStorage.getItem('chemulab_sidebar_collapsed');
-        if (stored === 'true') app.classList.add('sidebar-collapsed');
-        if (stored === 'false') app.classList.remove('sidebar-collapsed');
+
+        if (stored === 'true') {
+            app.classList.add('sidebar-collapsed');
+        } else if (stored === 'false' && !isMobile) {
+            // Only restore "open" state if we're on desktop
+            app.classList.remove('sidebar-collapsed');
+        } else if (isMobile) {
+            // Default for mobile is always collapsed if no specific action taken
+            app.classList.add('sidebar-collapsed');
+        }
     } catch (e) { }
 
     // Close sidebar when clicking outside on small screens
@@ -265,4 +274,57 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem('chemulab_theme', newTheme);
         }
     });
+    // --- Scroll Position Retention ---
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    const scrollKey = `chemulab_scroll_pos_${window.location.pathname}`;
+    let restoreTimeouts = [];
+
+    const stopRestoration = () => {
+        if (restoreTimeouts.length > 0) {
+            console.log('[ScrollRestoration] User interacted, stopping snap-back');
+            restoreTimeouts.forEach(clearTimeout);
+            restoreTimeouts = [];
+        }
+    };
+
+    // Restore scroll position
+    const restoreScroll = () => {
+        const savedPos = sessionStorage.getItem(scrollKey);
+        if (savedPos) {
+            const pos = parseInt(savedPos, 10);
+            window.scrollTo(0, pos);
+
+            // Queue up future checks for dynamic content (e.g. Firebase loading)
+            // But only if the user hasn't moved away yet
+            restoreTimeouts.push(setTimeout(() => {
+                if (restoreTimeouts.length > 0) window.scrollTo(0, pos);
+            }, 500));
+
+            restoreTimeouts.push(setTimeout(() => {
+                if (restoreTimeouts.length > 0) window.scrollTo(0, pos);
+                restoreTimeouts = []; // Clear after last check
+            }, 1500));
+        }
+    };
+
+    // Stop automated snap-back if user physically interacts
+    ['wheel', 'mousedown', 'keydown', 'touchmove'].forEach(evt => {
+        window.addEventListener(evt, stopRestoration, { passive: true });
+    });
+
+    // Save scroll position with bounce protection
+    let saveTimeout;
+    window.addEventListener('scroll', () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            sessionStorage.setItem(scrollKey, window.scrollY);
+        }, 150);
+    }, { passive: true });
+
+    // Initial restoration
+    restoreScroll();
+    window.addEventListener('load', restoreScroll);
 });

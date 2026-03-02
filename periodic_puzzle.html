@@ -173,7 +173,7 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <div class="app-container no-transition sidebar-collapsed">
         <div class="top-bar">
             <div class="header-left">
                 <button id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
@@ -247,6 +247,19 @@
         </div>
     </div>
     <script src="js/script.js"></script>
+    <script>
+        // Force sidebar collapsed for games instantly
+        (function () {
+            const app = document.querySelector('.app-container');
+            if (app) {
+                app.classList.add('sidebar-collapsed', 'no-transition');
+                document.addEventListener('DOMContentLoaded', () => {
+                    app.classList.add('sidebar-collapsed');
+                    setTimeout(() => app.classList.remove('no-transition'), 100);
+                });
+            }
+        })();
+    </script>
     <script src="js/periodic-puzzle.js"></script>
 </body>
 
