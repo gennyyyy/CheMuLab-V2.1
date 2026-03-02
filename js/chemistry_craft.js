@@ -1157,11 +1157,15 @@ const ChemistryCraft = {
     // Basic combinations lookup table (alphabetical keys)
     combinations: {
         'H+O': { symbol: 'H2O', name: 'Water', color: '#B3E0FF', type: 'compound' },
-        'C+O': { symbol: 'CO2', name: 'Carbon Dioxide', color: '#A9A9A9', type: 'compound' },
+        'H2O+O': { symbol: 'H2O2', name: 'Hydrogen Peroxide', color: '#E6F3FF', type: 'compound' },
+        'C+O': { symbol: 'CO', name: 'Carbon Monoxide', color: '#8A8A8A', type: 'compound' },
+        'CO+O': { symbol: 'CO2', name: 'Carbon Dioxide', color: '#A9A9A9', type: 'compound' },
         'H+N': { symbol: 'NH3', name: 'Ammonia', color: '#CC99FF', type: 'compound' },
-        'N+O': { symbol: 'NO2', name: 'Nitrogen Dioxide', color: '#FF9999', type: 'compound' },
+        'N+O': { symbol: 'NO', name: 'Nitric Oxide', color: '#E6B3B3', type: 'compound' },
+        'NO+O': { symbol: 'NO2', name: 'Nitrogen Dioxide', color: '#FF9999', type: 'compound' },
         'H+S': { symbol: 'H2S', name: 'Hydrogen Sulfide', color: '#FFFF99', type: 'compound' },
         'O+S': { symbol: 'SO2', name: 'Sulfur Dioxide', color: '#FFDB4D', type: 'compound' },
+        'O+SO2': { symbol: 'SO3', name: 'Sulfur Trioxide', color: '#FFE480', type: 'compound' },
         'O+P': { symbol: 'P2O5', name: 'Phosphorus Pentoxide', color: '#FFB366', type: 'compound' },
         'F+H': { symbol: 'HF', name: 'Hydrofluoric Acid', color: '#CCFF99', type: 'compound' },
         'Cl+H': { symbol: 'HCl', name: 'Hydrochloric Acid', color: '#90EE90', type: 'compound' },
@@ -1169,10 +1173,19 @@ const ChemistryCraft = {
         'H+I': { symbol: 'HI', name: 'Hydroiodic Acid', color: '#9370DB', type: 'compound' },
         'Na+O': { symbol: 'Na2O', name: 'Sodium Oxide', color: '#FFB366', type: 'compound' },
         'K+O': { symbol: 'K2O', name: 'Potassium Oxide', color: '#FF99CC', type: 'compound' },
+        'O+Si': { symbol: 'SiO2', name: 'Silicon Dioxide', color: '#F5C242', type: 'compound' },
+        'Al+O': { symbol: 'Al2O3', name: 'Aluminum Oxide', color: '#BFC7C9', type: 'compound' },
+        'Ca+O': { symbol: 'CaO', name: 'Calcium Oxide', color: '#A0A0A0', type: 'compound' },
+        'Mg+O': { symbol: 'MgO', name: 'Magnesium Oxide', color: '#B8B8B8', type: 'compound' },
         'Fe+O': { symbol: 'Fe2O3', name: 'Iron(III) Oxide', color: '#CD853F', type: 'compound' },
+        'Fe+S': { symbol: 'FeS', name: 'Iron(II) Sulfide', color: '#4B3621', type: 'compound' },
+        'S+Zn': { symbol: 'ZnS', name: 'Zinc Sulfide', color: '#E0E0E0', type: 'compound' },
+        'Cu+S': { symbol: 'CuS', name: 'Copper(II) Sulfide', color: '#3A3F44', type: 'compound' },
+        'Pb+S': { symbol: 'PbS', name: 'Lead(II) Sulfide', color: '#2F4F4F', type: 'compound' },
         'H2O+Na': { symbol: 'NaOH', name: 'Sodium Hydroxide', color: '#FFB366', type: 'compound' },
         'H2O+K': { symbol: 'KOH', name: 'Potassium Hydroxide', color: '#FF99CC', type: 'compound' },
-        'Cl+Na': { symbol: 'NaCl', name: 'Sodium Chloride', color: '#FFFFFF', type: 'compound' }
+        'Cl+Na': { symbol: 'NaCl', name: 'Sodium Chloride', color: '#FFFFFF', type: 'compound' },
+        'C+H': { symbol: 'CH4', name: 'Methane', color: '#D3D3D3', type: 'compound' }
     },
 
     // New: Chemical Category Logic for Dynamic Combinations
@@ -1203,6 +1216,14 @@ const ChemistryCraft = {
     generateDynamicCombination(el1, el2) {
         const cat1 = this.chemicalCategories[el1.symbol] || el1.type || 'unknown';
         const cat2 = this.chemicalCategories[el2.symbol] || el2.type || 'unknown';
+
+        const isMetal = cat => (cat.includes('metal') && cat !== 'nonmetal') ||
+            cat.includes('transition') || cat.includes('lanthanide') ||
+            cat.includes('actinide') || cat.includes('earth');
+
+        const metal1 = isMetal(cat1);
+        const metal2 = isMetal(cat2);
+
         let name, symbol, type;
         const color = this.blendColors(el1.color, el2.color);
 
@@ -1210,21 +1231,24 @@ const ChemistryCraft = {
             name = `${el1.name}-${el2.name} Mixture`;
             symbol = `${el1.symbol}${el2.symbol}`;
             type = 'mixture';
-        } else if (cat1.includes('metal') && cat2.includes('metal')) {
+        } else if (metal1 && metal2) {
             name = `${el1.name}-${el2.name} Alloy`;
             symbol = `${el1.symbol}${el2.symbol}`;
             type = 'alloy';
-        } else if ((cat1.includes('metal') && (cat2 === 'halogen' || cat2 === 'nonmetal')) ||
-            (cat2.includes('metal') && (cat1 === 'halogen' || cat1 === 'nonmetal'))) {
-            const metal = cat1.includes('metal') ? el1 : el2;
-            const nonMetal = cat1.includes('metal') ? el2 : el1;
+        } else if ((metal1 && !metal2) || (metal2 && !metal1)) {
+            const metal = metal1 ? el1 : el2;
+            const nonMetal = metal1 ? el2 : el1;
             const suffix = nonMetal.name === 'Oxygen' ? 'Oxide' :
                 nonMetal.name === 'Chlorine' ? 'Chloride' :
                     nonMetal.name === 'Fluorine' ? 'Fluoride' :
                         nonMetal.name === 'Bromine' ? 'Bromide' :
                             nonMetal.name === 'Iodine' ? 'Iodide' :
                                 nonMetal.name === 'Sulfur' ? 'Sulfide' :
-                                    nonMetal.name + 'ide';
+                                    nonMetal.name === 'Nitrogen' ? 'Nitride' :
+                                        nonMetal.name === 'Carbon' ? 'Carbide' :
+                                            nonMetal.name === 'Phosphorus' ? 'Phosphide' :
+                                                nonMetal.name === 'Hydrogen' ? 'Hydride' :
+                                                    nonMetal.name + 'ide';
             name = `${metal.name} ${suffix}`;
             symbol = `${metal.symbol}${nonMetal.symbol}`;
             type = 'compound';
@@ -1291,16 +1315,17 @@ const ChemistryCraft = {
             return;
         }
 
-        // Require authentication
-        if (!window.firebase?.auth()?.currentUser) {
-            console.warn('[ChemistryCraft] Cannot add discovery: Not signed in');
-            this.showToast('Please sign in to save discoveries!', true);
-            return;
-        }
-
-        // Add to UI and save
+        // Add to UI (this also handles the pending list if not signed in)
         this.addDiscoveryToUI(element);
-        this.saveDiscoveries();
+
+        // Save to cloud if authenticated
+        if (window.firebase?.auth()?.currentUser) {
+            this.saveDiscoveries();
+        } else {
+            console.log('[ChemistryCraft] Discovery added to local UI only (not signed in)');
+            // Optionally save to an "anonymous" local backup
+            this.createBackup(true);
+        }
     },
 
     // Add discovery to UI
@@ -1322,19 +1347,33 @@ const ChemistryCraft = {
 
             const discoveryItem = document.createElement('div');
             discoveryItem.className = 'discovery-item';
-
-            // Store discovery date
-            const now = new Date().toISOString();
-            discoveryItem.dataset.dateDiscovered = element.dateDiscovered || now;
-            discoveryItem.dataset.lastUpdated = now;
+            discoveryItem.draggable = true;
+            discoveryItem.dataset.element = JSON.stringify(element);
 
             discoveryItem.innerHTML = `
                 <span class="element-symbol">${element.symbol || ''}</span>
                 <span class="element-name">${element.name || ''}</span>
             `;
 
-            this.discoveriesList.appendChild(discoveryItem);
-            console.log('[ChemistryCraft] Added discovery to UI:', element.symbol);
+            discoveryItem.addEventListener('dragstart', event => {
+                event.dataTransfer.setData('application/json', JSON.stringify(element));
+                discoveryItem.classList.add('dragging');
+            });
+
+            discoveryItem.addEventListener('dragend', () => {
+                discoveryItem.classList.remove('dragging');
+            });
+
+            // Click-to-select fallback
+            discoveryItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleElementSelect(element, discoveryItem);
+            });
+
+            // Add to correct list based on auth state
+            const targetList = (window.firebase?.auth()?.currentUser) ? this.discoveriesList : (document.getElementById('pendingDiscoveriesList') || this.discoveriesList);
+            targetList.appendChild(discoveryItem);
+            console.log(`[ChemistryCraft] Added discovery to ${targetList.id || 'UI'}:`, element.symbol);
 
             // Save to storage
             this.saveDiscoveries().catch(err => {
